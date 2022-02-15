@@ -10,8 +10,8 @@ class Gambler(SimWorld):
     def __init__(self):
         super().__init__()
         config = configparser.ConfigParser()
-        config.read('config')
-        self.monetary_units = random.randint(1, 100)
+        config.read('config.ini')
+        self.monetary_units = random.randint(1, 99)
         self.initial_money = self.monetary_units
         self.win_prob = config['GAMBLER'].getfloat('WIN_PROB')
 
@@ -29,11 +29,14 @@ class Gambler(SimWorld):
             self.monetary_units += action
         else:
             self.monetary_units -= action
-        # TODO: du holdt på her axel, actions er noen ganger [] av en eller annen grunn
+
         return self.monetary_units,  self.monetary_units - self.initial_money
 
     def reset_world(self):
-        self.monetary_units = random.randint(1, 100)
+        self.monetary_units = random.randint(1, 99)
+
+    def plot_world_state(self):
+        pass
 
 
 
