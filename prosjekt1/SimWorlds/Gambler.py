@@ -1,19 +1,27 @@
-import math
 import random
 import configparser
-import ast
-
-from SimWorld import SimWorld
+from SimWorlds.SimWorld import SimWorld
 
 
 class Gambler(SimWorld):
+    """
+    Implements the Gambler SimWorld
+    """
     def __init__(self):
         super().__init__()
+        self.name = "Gambler"
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.monetary_units = random.randint(1, 99)
         self.initial_money = self.monetary_units
         self.win_prob = config['GAMBLER'].getfloat('WIN_PROB')
+
+    def produce_state_definition(self):
+        pass
+
+    """ SimWorld Functions """
+    def get_sim_world_name(self):
+        return self.name
 
     def is_current_state_final(self):
         return self.monetary_units <= 0 or self.monetary_units >= 100
@@ -29,7 +37,7 @@ class Gambler(SimWorld):
             self.monetary_units += action
         else:
             self.monetary_units -= action
-
+        # Using total win this episode as reward
         return self.monetary_units,  self.monetary_units - self.initial_money
 
     def reset_world(self):
@@ -38,6 +46,5 @@ class Gambler(SimWorld):
     def plot_world_state(self):
         pass
 
-
-
-p = Gambler()
+    def visualize_best(self):
+        pass

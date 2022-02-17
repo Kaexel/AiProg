@@ -1,17 +1,13 @@
 import random
-import numpy as np
-from Hanoi import Hanoi
 import configparser
-import ast
-from SimWorld import SimWorld
 from collections import defaultdict
 
 
 class Actor:
-
-    def __init__(self, sim_world: SimWorld):
-        assert isinstance(sim_world, SimWorld)
-
+    """
+    Class implementing Actor portion of Actor-Critic
+    """
+    def __init__(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.discount_factor = config["PRIMARY"].getfloat('DISCOUNT_ACTOR')
@@ -19,7 +15,6 @@ class Actor:
         self.edr = config["PRIMARY"].getfloat('EDR_ACTOR')
         self.epsilon = config["PRIMARY"].getfloat('EPSILON_INITIAL')
         self.epsilon_decay = config["PRIMARY"].getfloat('EPSILON_DECAY')
-        self.sim_world = sim_world
         """ Policy and eligibilities initialized with 0 """
         self.policy = defaultdict(int)
         self.eligibilities = defaultdict(int)
@@ -33,10 +28,9 @@ class Actor:
     def get_action(self, state, possible_actions):
         if random.random() < self.epsilon:
             return random.choice(possible_actions)
-        keys = [(state, k) for k in possible_actions]
-        temp = {k: self.policy[k] for k in keys}
-        return max(temp, key=lambda k: temp[k])[1]
+        keys = {self.policy[(state, a)]: a for a in possible_actions}
 
+        return keys[max(keys)]
 
     def set_eligibility(self, state, action, value):
         self.eligibilities[(state, action)] = value
