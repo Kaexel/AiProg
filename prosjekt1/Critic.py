@@ -113,7 +113,7 @@ class CriticNN:
         opt = 'SGD'
         loss = tf.keras.metrics.mean_squared_error
         opt = eval('ker.optimizers.' + opt)
-        model = ker.models.Sequential()  # The model can now be built sequentially from input to output
+        model = ker.models.Sequential()
         model.add(ker.layers.Dense(self.nn_dims[0], activation='relu'))
         for i in self.nn_dims[1:]:
             model.add(ker.layers.Dense(i, activation='relu'))
