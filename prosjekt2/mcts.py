@@ -2,10 +2,8 @@ import math
 from copy import deepcopy
 from random import choice
 
-import torch
-
-from hex import Hex
-from sim_world import SimWorld, Players
+from sim_worlds.hex import Hex
+from sim_worlds.sim_world import SimWorld
 
 
 class Node:
@@ -21,12 +19,8 @@ class Node:
         self.terminal_node = self.state.is_current_state_final()
         self.max_expansion = self.terminal_node
 
-
     def add_child(self, child, move):
         self.children[move] = child
-
-    def add_children(self, children: list):
-        self.children += children
 
     def get_q(self):
         c = 1
@@ -41,13 +35,11 @@ class Node:
         return exploration_c * math.sqrt(math.log(self.parent.N) / (1 + self.N))
 
     def __str__(self):
-        s = []
-        s.append(f"Total reward: {self.E}\t")
-        s.append(f"Number of visits: {self.N}\t")
-        s.append(f"Expected reward:  {self.get_q():.2}\t")
-        s.append(f"Terminal: {self.terminal_node}\t")
-        s.append(f"Move that led here: {self.move}\t")
-        s.append(f"Possible actions: {self.children.keys()}")
+        s = [f"Total reward: {self.E}\t", f"Number of visits: {self.N}\t",
+             f"Expected reward:  {self.get_q():.2}\t",
+             f"Terminal: {self.terminal_node}\t",
+             f"Move that led here: {self.move}\t",
+             f"Possible actions: {self.children.keys()}"]
         return f"{self.__class__.__name__}: {''.join(s)}"
 
 
@@ -93,10 +85,11 @@ class MCTS:
                 return child
 
     def rollout(self, state: SimWorld):
+        state = deepcopy(state)
         while not state.is_current_state_final():
             actions = state.get_legal_actions()
             action_selected = choice(actions)  # TODO: get action from NN
-            state = state.play_action(action_selected)
+            state = state.play_action(action_selected, inplace=True)
 
         self.rollout_count += 1
         winner = state.get_final_result()  # Maybe return value?

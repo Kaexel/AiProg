@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from sim_world import SimWorld
+from sim_worlds.sim_world import SimWorld
 
 
 class Nim(SimWorld):

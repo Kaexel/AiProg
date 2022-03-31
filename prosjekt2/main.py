@@ -1,16 +1,11 @@
 import configparser
-import timeit
 import time
 import torch
-import numpy as np
-import math
 
-import nn
-from hex import Hex
+from sim_worlds.hex import Hex
 from mcts import MCTS
-from nim import Nim
-from old_gold import OldGold
-from sim_world import SimWorld
+from sim_worlds.nim import Nim
+from sim_worlds.old_gold import OldGold
 import random
 
 random.seed(42)
@@ -49,7 +44,7 @@ nim = Nim(10, 5)
 
 mcts = MCTS(sim_world)
 t = time.time()
-mcts.search(10000)
+mcts.search(1000)
 print(f"{(time.time() - t):.3}")
 
 

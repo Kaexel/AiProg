@@ -1,4 +1,4 @@
-class SetUnit:
+class HexSetUnit:
     def __init__(self, value: tuple):
         self.value = value
         self.parent = None
@@ -9,7 +9,8 @@ class SetUnit:
         return f"Value: {self.value}, Parent:  {self.parent}"
 
     def __repr__(self):
-        return f"Value: {self.value}, Parent:  {self.parent.value}"
+        return f"Value: {self.value}, Parent:  {self.parent.value}\n"
+
 
 class DisjointSetForest:
     def __init__(self):
@@ -17,7 +18,7 @@ class DisjointSetForest:
 
     def make_set(self, coords):
         if coords not in self.forest.keys():
-            x = SetUnit(coords)
+            x = HexSetUnit(coords)
             x.parent = x
             x.size = 1
             x.rank = 0

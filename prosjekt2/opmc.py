@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch
 
 import nn
-from hex import Hex
+from sim_worlds.hex import Hex
 from mcts import MCTS
 
 

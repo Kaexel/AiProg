@@ -29,7 +29,7 @@ class SimWorld:
     def is_current_state_final(self):
         raise NotImplementedError
 
-    def play_action(self, action):
+    def play_action(self, action, inplace=True):
         raise NotImplementedError
 
     def get_sim_world_name(self):
