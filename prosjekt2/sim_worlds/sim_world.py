@@ -51,4 +51,7 @@ class SimWorld:
     def get_game_state(self):
         return self.game_state
 
+    def nn_state_representation(self):
+        raise NotImplementedError
+
 

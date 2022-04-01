@@ -44,9 +44,9 @@ nim = Nim(10, 5)
 
 mcts = MCTS(sim_world)
 t = time.time()
-mcts.search(1000)
+q = mcts.search(1000)
 print(f"{(time.time() - t):.3}")
-
+print(q)
 
 
 

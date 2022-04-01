@@ -9,60 +9,76 @@ import numpy as np
 neighbors = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]  # Possible neighbor offsets
 
 
+# TODO: make this less of a mess
+def add_edges_to_forest(board, forest):
+    # Top set
+    last_val = None
+    for row, val in enumerate(board[0, :]):
+        if val == 1:
+            cur_val = (0, row)
+            forest.make_set(cur_val)
+            if last_val is not None:
+                forest.union(forest.forest[last_val], forest.forest[cur_val])
+            last_val = cur_val
+
+    # Bottom set
+    last_val = None
+    for row, val in enumerate(board[-1, :]):
+        if val == 1:
+            cur_val = (board.shape[1] - 1, row)
+            forest.make_set(cur_val)
+            if last_val is not None:
+                forest.union(forest.forest[last_val], forest.forest[cur_val])
+            last_val = cur_val
+
+    # Left set
+    last_val = None
+    for row, val in enumerate(board[:, 0]):
+        if val == 2:
+            cur_val = (row, 0)
+            forest.make_set(cur_val)
+            if last_val is not None:
+                forest.union(forest.forest[last_val], forest.forest[cur_val])
+            last_val = cur_val
+
+    # Right set
+    last_val = None
+    for row, val in enumerate(board[:, -1]):
+        if val == 2:
+            cur_val = (row, board.shape[0] - 1)
+            forest.make_set(cur_val)
+            if last_val is not None:
+                forest.union(forest.forest[last_val], forest.forest[cur_val])
+            last_val = cur_val
+
+
 class Hex(SimWorld):
     """
     Class implementing Hex as defined in docs
     """
-    def __init__(self, board_x: int, board_y: int):
-        super().__init__((board_x, board_y))
-        self.forest = DisjointSetForest()
-        self.board = np.array([[0 for i in range(board_y)] for j in range(board_x)])
-        self.board = np.pad(self.board, 1, mode='constant', constant_values=2)
-        self.board[0, :] = 1
-        self.board[-1, :] = 1
-        self.add_edges_to_forest(self.board)
+    @classmethod
+    def clone_state(cls, state):
+        board = state.board.copy()
+        forest = state.forest
+        converter = tf.lite.TFLiteConverter.from_keras_model(kmodel)
+        tflite_model = converter.convert()
+        return LiteModel(tf.lite.Interpreter(model_content=tflite_model))
 
-    # TODO: make this less of a mess
-    def add_edges_to_forest(self, board):
-        # Top set
-        last_val = None
-        for row, val in enumerate(self.board[0, :]):
-            if val == 1:
-                cur_val = (0, row)
-                self.forest.make_set(cur_val)
-                if last_val is not None:
-                    self.forest.union(self.forest.forest[last_val], self.forest.forest[cur_val])
-                last_val = cur_val
+    @classmethod
+    def initialize_state(cls, board_x, board_y):
+        forest = DisjointSetForest()
+        board = np.array([[0 for i in range(board_y)] for j in range(board_x)])
+        board = np.pad(board, 1, mode='constant', constant_values=2)
+        board[0, :] = 1
+        board[-1, :] = 1
+        add_edges_to_forest(forest, board)
+        cls(board, forest, (board_x, board_y))
 
-        # Bottom set
-        last_val = None
-        for row, val in enumerate(self.board[-1, :]):
-            if val == 1:
-                cur_val = (self.board.shape[1] - 1, row)
-                self.forest.make_set(cur_val)
-                if last_val is not None:
-                    self.forest.union(self.forest.forest[last_val], self.forest.forest[cur_val])
-                last_val = cur_val
+    def __init__(self, board, forest, board_size: tuple):
+        super().__init__(board.shape)
+        self.forest = forest
+        self.board = board
 
-        # Left set
-        last_val = None
-        for row, val in enumerate(self.board[:, 0]):
-            if val == 2:
-                cur_val = (row, 0)
-                self.forest.make_set(cur_val)
-                if last_val is not None:
-                    self.forest.union(self.forest.forest[last_val], self.forest.forest[cur_val])
-                last_val = cur_val
-
-        # Right set
-        last_val = None
-        for row, val in enumerate(self.board[:, -1]):
-            if val == 2:
-                cur_val = (row, self.board.shape[0] - 1)
-                self.forest.make_set(cur_val)
-                if last_val is not None:
-                    self.forest.union(self.forest.forest[last_val], self.forest.forest[cur_val])
-                last_val = cur_val
 
     def get_legal_actions(self):
         actions = []
@@ -101,8 +117,13 @@ class Hex(SimWorld):
     def get_sim_world_name(self):
         return "Hex"
 
-    def channels(self):
-        channels = []
+    def nn_state_representation(self):
+        channels = np.zeros((3, self.board.shape[1], self.board.shape[0]), dtype=int)
+
+        channels[0] = np.where(self.board == 0, 1, 0)
+        channels[1] = np.where(self.board == 1, 1, 0)
+        channels[2] = np.where(self.board == 2, 1, 0)
+        """
         channel_empty = np.where(self.board == 0, 1, 0)
         channel_white = np.where(self.board == 1, 1, 0)
         channel_black = np.where(self.board == 2, 1, 0)
@@ -112,12 +133,15 @@ class Hex(SimWorld):
         channel_white_play = np.ones_like(self.board) if self.player_turn == Players.WHITE else np.zeros_like(self.board)
         channel_save_bridge = np.array((2, 2))
         channel_form_bridge = np.array((2, 2))
+        """
 
-        return channel_empty
-
+        return channels
 
     def in_bounds(self, coords):
         size = self.board.shape
         if 0 <= coords[0] < size[0] and 0 <= coords[1] < size[1]:
             return True
         return False
+
+    def clone(self):
+

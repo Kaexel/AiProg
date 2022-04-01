@@ -2,8 +2,14 @@ import math
 from copy import deepcopy
 from random import choice
 
+import numpy as np
+
 from sim_worlds.hex import Hex
 from sim_worlds.sim_world import SimWorld
+
+class RandomPolicy:
+    def get_action(self, state):
+        return choice(state.get_legal_actions())
 
 
 class Node:
@@ -23,15 +29,14 @@ class Node:
         self.children[move] = child
 
     def get_q(self):
-        c = 1
         if self.N == 0:
-            return float("inf")
+            return float(1000000)
         else:
             return self.E / self.N
 
     def get_uct(self, exploration_c):
         if self.N == 0:
-            return float("inf")
+            return float(1000000)
         return exploration_c * math.sqrt(math.log(self.parent.N) / (1 + self.N))
 
     def __str__(self):
@@ -44,20 +49,22 @@ class Node:
 
 
 class MCTS:
-    def __init__(self, state=Hex(4, 4)):
+    def __init__(self, state=Hex(4, 4), policy_object=RandomPolicy()):
 
         self.initial_state: SimWorld = state
         self.root = Node(deepcopy(state))
+        self.nodes = []
         self.node_count = 1
         self.rollout_count = 0
+        self.policy_object = policy_object
 
     def search(self, max_rollouts):
         for i in range(max_rollouts):
             self.single_pass()
-        self.print_stats()
-        print(self.root)
-        for child in self.root.children.values():
-            print(child)
+        #self.print_stats()
+
+        #return self.gen_distribution()
+        return {key: v.N for key, v in self.root.children.items()}
 
     def single_pass(self):
         node = self.select_node(self.root)
@@ -80,6 +87,7 @@ class MCTS:
                 child = Node(new_state, node, action)
                 self.node_count += 1
                 node.children[action] = child
+                self.nodes.append(child)
                 if len(actions) == len(node.children):
                     node.max_expansion = True
                 return child
@@ -87,8 +95,8 @@ class MCTS:
     def rollout(self, state: SimWorld):
         state = deepcopy(state)
         while not state.is_current_state_final():
-            actions = state.get_legal_actions()
-            action_selected = choice(actions)  # TODO: get action from NN
+            action_selected = self.policy_object.get_action(state)
+            #action_selected = choice(actions)  # TODO: get action from NN
             state = state.play_action(action_selected, inplace=True)
 
         self.rollout_count += 1
@@ -115,8 +123,23 @@ class MCTS:
 
         return choice(best_children)
 
+
+    def gen_distribution(self):
+        dist = []
+        root_n = self.root.N
+        for child in self.root.children.values():
+            dist.append(child.N/root_n)
+        return dist
+
     def update_root(self, action):
+        self.rollout_count = 0
         self.root = self.root.children[action]
+        self.reset_nodes()
+
+    def reset_nodes(self):
+        for node in self.nodes:
+            node.N = 0
+            node.E = 0
 
     def print_stats(self):
         print(f"Used nodes: {self.node_count}\n"
