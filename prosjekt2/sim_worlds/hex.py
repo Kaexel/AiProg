@@ -72,15 +72,8 @@ class Hex(SimWorld):
                 actions.append((iterator.multi_index[0] - 1, iterator.multi_index[1] - 1)) 
         return actions
 
-    def get_illegal_actions(self):
-        actions = []
-        for row, tile_y in enumerate(self.board):
-            for col, tile_x in enumerate(tile_y):
-                if tile_x != 0:
-                    actions.append((row - 1, col - 1))  # Abstracting away edges used for win check
-        return actions
-
     def is_current_state_final(self):
+        # TODO: disjoint forest very cool, but slow to copy. Separate state as board from manager as hex object
         top_bot_connect = self.forest.is_connected(self.forest.forest[(0, 1)], self.forest.forest[(self.board.shape[0] - 1, 1)])
         left_right_connect = self.forest.is_connected(self.forest.forest[(1, 0)], self.forest.forest[(1, self.board.shape[1] - 1)])
         return top_bot_connect or left_right_connect
@@ -96,7 +89,7 @@ class Hex(SimWorld):
 
         state.switch_player_turn()
         return state
-        # TODO: game over
+
 
     def loopy(self, action, state):
         placement = 1 if state.player_turn == Players.WHITE else 2  # Init placement indicator

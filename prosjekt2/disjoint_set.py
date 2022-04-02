@@ -53,7 +53,7 @@ class DisjointSetForest:
 
     def clone(self):
         dsf = DisjointSetForest()
-        dsf.forest = {val: copy.copy(hsu) for val, hsu in self.forest.items()}
+        dsf.forest = {val: copy.deepcopy(hsu) for val, hsu in self.forest.items()}
         return dsf
 
 

@@ -113,6 +113,7 @@ class LiteModel:
             shape = state.get_board_shape()
             move_distribution = move_distribution.reshape(state.get_board_shape())
             legal_actions = state.get_legal_actions()
+            # TODO: 1D mask maybe faster? coords too 
             #action_indices = [shape[1] * action[0] + action[1] for action in legal_actions]
             mask = np.zeros(move_distribution.shape, dtype=bool)
             for action in legal_actions:

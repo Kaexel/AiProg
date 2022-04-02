@@ -11,6 +11,7 @@ testo = nn.make_keras_model(32, 5, 5)
 lite = nn.LiteModel.from_keras_model(model)
 sim_world = Hex.initialize_state(5, 5)
 plotting.plot_board(sim_world)
+lite.epsilon = 0
 while not sim_world.is_current_state_final():
 
     nn_move = lite.get_action(sim_world)
