@@ -49,9 +49,12 @@ def make_keras_model(w, rows, cols):
     model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='valid', data_format='channels_first',
                      activation='relu', input_shape=(5, rows + 2 , cols + 2)))
                      #activation='relu', input_shape=(5, rows + 2, cols + 2)))
+    model.add(BatchNormalizationV2())
     # model.add(Dropout(rate=0.2))
     model.add(Conv2D(filters=w, kernel_size=(5, 5), strides=1, padding='same', data_format='channels_first', activation='relu'))
+    model.add(BatchNormalizationV2())
     model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation='relu'))
+    model.add(BatchNormalizationV2())
     #model.add(Conv2D(filters=1, kernel_size=(1, 1), strides=1, padding='valid', activation="softmax"))
     # model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_last', activation='relu'))
     # model.add(Conv2D(filters=rows*cols, kernel_size=(1, 1), strides=1, padding='valid', data_format='channels_last', activation='softmax'))
@@ -107,14 +110,17 @@ class LiteModel:
         if random.random() > self.epsilon:
             nn_state_representation = state.nn_state_representation()
             move_distribution = self.predict_single(nn_state_representation)
-
-            move_distribution = move_distribution.reshape(state.get_board_shape())
+            shape = state.get_board_shape()
+            #move_distribution = move_distribution.reshape(state.get_board_shape())
             legal_actions = state.get_legal_actions()
+            #action_indices = [shape[1] * action[0] + action[1] for action in legal_actions]
+            move_distribution[move_distribution]
+            mask = np.ones()
 
-            mask = np.zeros(move_distribution.shape, dtype=bool)
-            for action in legal_actions:
-                mask[action] = True
-            move_distribution = np.where(mask == True, move_distribution, 0)
+
+                move_distribution[legal_actions] == True
+            #move_distribution = np.where(mask == True, move_distribution, 0)
+            move_distribution[mask] = 0
             best_move = np.ndarray.argmax(move_distribution)
             shape_b = state.get_board_shape()
             return best_move // (shape_b[1]), best_move % (shape_b[0])

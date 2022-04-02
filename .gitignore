@@ -6,6 +6,7 @@ __pycache__/
 *$py.class
 
 *.pdf
+prosjekt2/models
 
 # C extensions
 *.so

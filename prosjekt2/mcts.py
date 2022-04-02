@@ -88,7 +88,7 @@ class MCTS:
                 child = Node(new_state, node, action)
                 self.node_count += 1
                 node.children[action] = child
-                self.nodes.append(child)
+                #self.nodes.append(child)
                 if len(actions) == len(node.children):
                     node.max_expansion = True
                 return child
@@ -137,7 +137,7 @@ class MCTS:
         self.root.parent = None
         self.root.children = {}
         self.root.max_expansion = False
-        self.reset_nodes()
+        #self.reset_nodes()
 
     def reset_nodes(self):
         for node in self.nodes:
