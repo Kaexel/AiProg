@@ -10,7 +10,7 @@ neighbors = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]  # Possible nei
 bridge_endpoints = [(-1, -1), (-2, 1), (-1, 2), (1, 1), (2, -1), (1, -2)] # Possible bridge points
 bridge_dict = {(-1, -1): [(0, -1), (-1, 0)], (-2, 1): [], (-1, 2): [], (1, 1): [], (2, -1): [], (1, -2): []}
 
-# TODO: make this less of a mess
+
 def add_edges_to_forest(board, forest, shape):
     top = (0, 1)
     bot = (shape[1] - 1, 1)
@@ -43,7 +43,7 @@ class Hex(SimWorld):
     @classmethod
     def clone_state(cls, state):
         board = state.board.copy()
-        #forest = state.forest.clone()
+        forest = state.forest.clone()
         forest = deepcopy(state.forest)
         return Hex(board, forest, board.shape, state.player_turn)
 
@@ -69,7 +69,7 @@ class Hex(SimWorld):
         iterator = np.nditer(self.board, flags=["multi_index"])
         for tile in iterator:
             if tile == 0:
-                actions.append((iterator.multi_index[0] - 1, iterator.multi_index[1] - 1))  # Abstracting away edges used for win check
+                actions.append((iterator.multi_index[0] - 1, iterator.multi_index[1] - 1)) 
         return actions
 
     def get_illegal_actions(self):
