@@ -11,6 +11,11 @@ neighbors = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]  # Possible nei
 
 # TODO: make this less of a mess
 def add_edges_to_forest(board, forest):
+
+    #for y, row in enumerate(board):
+    #    for x, col in enumerate(row):
+
+
     # Top set
     last_val = None
     for row, val in enumerate(board[0, :]):
@@ -59,10 +64,9 @@ class Hex(SimWorld):
     @classmethod
     def clone_state(cls, state):
         board = state.board.copy()
-        forest = state.forest
-        converter = tf.lite.TFLiteConverter.from_keras_model(kmodel)
-        tflite_model = converter.convert()
-        return LiteModel(tf.lite.Interpreter(model_content=tflite_model))
+        #forest = state.forest.clone()
+        forest = deepcopy(state.forest)
+        return Hex(board, forest, board.shape, state.player_turn)
 
     @classmethod
     def initialize_state(cls, board_x, board_y):
@@ -71,13 +75,14 @@ class Hex(SimWorld):
         board = np.pad(board, 1, mode='constant', constant_values=2)
         board[0, :] = 1
         board[-1, :] = 1
-        add_edges_to_forest(forest, board)
-        cls(board, forest, (board_x, board_y))
+        add_edges_to_forest(board, forest)
+        return Hex(board, forest, (board_x, board_y))
 
-    def __init__(self, board, forest, board_size: tuple):
+    def __init__(self, board, forest, board_size: tuple, player_turn=Players.WHITE):
         super().__init__(board.shape)
         self.forest = forest
         self.board = board
+        self.player_turn = player_turn
 
 
     def get_legal_actions(self):
@@ -97,10 +102,17 @@ class Hex(SimWorld):
         if inplace:
             state = self
         else:
-            state = deepcopy(self)
+            state = Hex.clone_state(self)
         action = (action[0] + 1, action[1] + 1)     # Rejiggering into edge space
-        placement = 1 if state.player_turn == Players.WHITE else 2  # Init placement indicator
 
+        self.loopy(action, state)
+
+        state.switch_player_turn()
+        return state
+        # TODO: game over
+
+    def loopy(self, action, state):
+        placement = 1 if state.player_turn == Players.WHITE else 2  # Init placement indicator
         state.forest.make_set(action)
         for tile in neighbors:
             tile_coords = (action[0] + tile[0], action[1] + tile[1])
@@ -110,19 +122,28 @@ class Hex(SimWorld):
                     state.forest.union(state.forest.forest[action], state.forest.forest[tile_coords])
 
         state.board[action[0]][action[1]] = placement
-        state.switch_player_turn()
-        return state
-        # TODO: game over
+
+    def get_final_result(self):
+        assert self.is_current_state_final()
+        top_bot_connect = self.forest.is_connected(self.forest.forest[(0, 1)], self.forest.forest[(self.board.shape[0] - 1, 1)])
+        #left_right_connect = self.forest.is_connected(self.forest.forest[(1, 0)], self.forest.forest[(1, self.board.shape[1] - 1)])
+        return Players.WHITE.value if top_bot_connect else Players.BLACK.value
+
 
     def get_sim_world_name(self):
         return "Hex"
 
+    def get_board_shape(self):
+        return self.board.shape[0] - 2, self.board.shape[1] - 2
+
     def nn_state_representation(self):
-        channels = np.zeros((3, self.board.shape[1], self.board.shape[0]), dtype=int)
+        channels = np.zeros((5, self.board.shape[1], self.board.shape[0]), dtype=int)
 
         channels[0] = np.where(self.board == 0, 1, 0)
         channels[1] = np.where(self.board == 1, 1, 0)
         channels[2] = np.where(self.board == 2, 1, 0)
+        channels[3] = np.ones_like(self.board) if self.player_turn == Players.BLACK else np.zeros_like(self.board)
+        channels[4] = np.ones_like(self.board) if self.player_turn == Players.WHITE else np.zeros_like(self.board)
         """
         channel_empty = np.where(self.board == 0, 1, 0)
         channel_white = np.where(self.board == 1, 1, 0)
@@ -134,6 +155,8 @@ class Hex(SimWorld):
         channel_save_bridge = np.array((2, 2))
         channel_form_bridge = np.array((2, 2))
         """
+        if self.player_turn == Players.BLACK:
+            channels = np.rot90(channels, axes=(1, 2))
 
         return channels
 
@@ -142,6 +165,4 @@ class Hex(SimWorld):
         if 0 <= coords[0] < size[0] and 0 <= coords[1] < size[1]:
             return True
         return False
-
-    def clone(self):
 

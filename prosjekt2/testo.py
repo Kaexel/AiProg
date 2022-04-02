@@ -7,31 +7,22 @@ from nn import make_keras_model, PolicyNetwork
 from opmc import OnPolicyMonteCarlo
 from sim_worlds.hex import Hex
 from plotting import plot_board
-
+import configparser
 import tensorflow as tf
 
-hex = Hex(4, 4)
 
-ds = DisjointSetForest()
+config = configparser.ConfigParser()
+config.read('config.ini')
+num_actual = config["PRIMARY"].getint('NUM_ACTUAL_GAMES')
+num_rollout = config["PRIMARY"].getint('MCTS_NUM_ROLLOUTS')
+board_k = config["HEX"].getint('BOARD_K')
 
-ac = hex.get_legal_actions()
-
-hex.play_action((0, 0))
-hex.play_action((0, 3))
-hex.play_action((3, 1))
-#hex.play_action((0, 2))
-hex.play_action((3, 0))
-hex.play_action((1, 1))
-#print(hex.forest.is_connected(hex.forest.forest[(0,0)], hex.forest.forest[(2, 2)]))
-#hex.play_action((1, 1))
-#print(hex.forest.is_connected(hex.forest.forest[(3,1)], hex.forest.forest[(2, 2)]))
-
-opmc = OnPolicyMonteCarlo(Hex(5, 5))
-#pr = cProfile.Profile()
-#pr.enable()
+opmc = OnPolicyMonteCarlo(Hex.initialize_state(board_k, board_k), 50, actual_games=num_actual, search_games=num_rollout)
+pr = cProfile.Profile()
+pr.enable()
 opmc.run_games()
-#pr.disable()
-#pr.print_stats()
+pr.disable()
+pr.print_stats()
 """
 q = hex.channels()
 mike = make_keras_model(20, 4, 4)
@@ -41,6 +32,4 @@ y = p_net.get_action(hex)
 print(y)
 """
 
-
-plot_board(hex)
 #print(hex.channels())

@@ -1,4 +1,5 @@
 import os
+import random
 
 import keras
 import torch
@@ -46,10 +47,11 @@ t = NeuralNetworkTorch(1, 2, 3)
 def make_keras_model(w, rows, cols):
     model = keras.models.Sequential()
     model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='valid', data_format='channels_first',
-                     activation='relu', input_shape=(3, rows + 2, cols + 2)))
+                     activation='relu', input_shape=(5, rows + 2 , cols + 2)))
+                     #activation='relu', input_shape=(5, rows + 2, cols + 2)))
     # model.add(Dropout(rate=0.2))
-    model.add(Conv2D(filters=w, kernel_size=(5, 5), strides=1, padding='same', activation='relu'))
-    model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', activation='relu'))
+    model.add(Conv2D(filters=w, kernel_size=(5, 5), strides=1, padding='same', data_format='channels_first', activation='relu'))
+    model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation='relu'))
     #model.add(Conv2D(filters=1, kernel_size=(1, 1), strides=1, padding='valid', activation="softmax"))
     # model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_last', activation='relu'))
     # model.add(Conv2D(filters=rows*cols, kernel_size=(1, 1), strides=1, padding='valid', data_format='channels_last', activation='softmax'))
@@ -99,22 +101,27 @@ class LiteModel:
         self.output_shape = output_det["shape"]
         self.input_dtype = input_det["dtype"]
         self.output_dtype = output_det["dtype"]
+        self.epsilon = 0.05
 
     def get_action(self, state: SimWorld):
-        nn_state_representation = state.nn_state_representation()
-        move_distribution = self.predict_single(nn_state_representation)
+        if random.random() > self.epsilon:
+            nn_state_representation = state.nn_state_representation()
+            move_distribution = self.predict_single(nn_state_representation)
 
-        move_distribution = move_distribution.reshape(state.board_size)
-        legal_actions = state.get_legal_actions()
+            move_distribution = move_distribution.reshape(state.get_board_shape())
+            legal_actions = state.get_legal_actions()
 
-        mask = np.zeros(move_distribution.shape, dtype=bool)
-        for action in legal_actions:
-            mask[action] = True
+            mask = np.zeros(move_distribution.shape, dtype=bool)
+            for action in legal_actions:
+                mask[action] = True
+            move_distribution = np.where(mask == True, move_distribution, 0)
+            best_move = np.ndarray.argmax(move_distribution)
+            shape_b = state.get_board_shape()
+            return best_move // (shape_b[1]), best_move % (shape_b[0])
+        else:
+            return random.choice(state.get_legal_actions())
 
-        move_distribution = np.where(mask == True, move_distribution, 0)
-        best_move = np.ndarray.argmax(move_distribution)
 
-        return best_move // (state.board_size[1]), best_move % (state.board_size[0])
 
     def predict(self, inp):
         inp = inp.astype(self.input_dtype)

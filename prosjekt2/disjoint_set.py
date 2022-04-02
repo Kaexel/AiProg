@@ -1,9 +1,10 @@
+import copy
+
+
 class HexSetUnit:
-    def __init__(self, value: tuple):
+    def __init__(self, value: tuple, parent=None):
         self.value = value
-        self.parent = None
-        self.size = 0
-        self.rank = 0
+        self.parent = parent
 
     def __str__(self):
         return f"Value: {self.value}, Parent:  {self.parent}"
@@ -11,6 +12,8 @@ class HexSetUnit:
     def __repr__(self):
         return f"Value: {self.value}, Parent:  {self.parent.value}\n"
 
+    def __copy__(self):
+        return HexSetUnit(self.value, copy.copy(self.parent))
 
 class DisjointSetForest:
     def __init__(self):
@@ -21,7 +24,6 @@ class DisjointSetForest:
             x = HexSetUnit(coords)
             x.parent = x
             x.size = 1
-            x.rank = 0
             self.forest[x.value] = x
 
     def find(self, x):  # Traverses set to root element
@@ -48,5 +50,10 @@ class DisjointSetForest:
         x = self.find(x)
         y = self.find(y)
         return x == y
+
+    def clone(self):
+        dsf = DisjointSetForest()
+        dsf.forest = {val: copy.copy(hsu) for val, hsu in self.forest.items()}
+        return dsf
 
 

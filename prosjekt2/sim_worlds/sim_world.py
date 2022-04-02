@@ -17,6 +17,14 @@ class SimWorld:
     """
     Abstract class to represent simple 2-player board games as SimWorlds
     """
+    @classmethod
+    def clone_state(cls, state):
+        raise NotImplementedError
+
+    @classmethod
+    def initialize_state(cls, board_x, board_y):
+        raise NotImplementedError
+
     def __init__(self, board_size: tuple):
         self.game_state = GameState.PLAYING
         self.player_turn = Players.WHITE
@@ -33,6 +41,9 @@ class SimWorld:
         raise NotImplementedError
 
     def get_sim_world_name(self):
+        raise NotImplementedError
+
+    def get_board_shape(self):
         raise NotImplementedError
 
     def get_final_result(self):

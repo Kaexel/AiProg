@@ -30,14 +30,15 @@ class Node:
 
     def get_q(self):
         if self.N == 0:
-            return float(1000000)
+            return 1000000
         else:
             return self.E / self.N
 
     def get_uct(self, exploration_c):
         if self.N == 0:
-            return float(1000000)
-        return exploration_c * math.sqrt(math.log(self.parent.N) / (1 + self.N))
+            return 1000000
+        #return exploration_c * math.sqrt(math.log(self.parent.N) / (1 + self.N))
+        return exploration_c * math.sqrt(math.log(self.parent.N) / (self.N))
 
     def __str__(self):
         s = [f"Total reward: {self.E}\t", f"Number of visits: {self.N}\t",
@@ -49,10 +50,10 @@ class Node:
 
 
 class MCTS:
-    def __init__(self, state=Hex(4, 4), policy_object=RandomPolicy()):
+    def __init__(self, state=Hex.initialize_state(4, 4), policy_object=RandomPolicy()):
 
         self.initial_state: SimWorld = state
-        self.root = Node(deepcopy(state))
+        self.root = Node(Hex.clone_state(state))
         self.nodes = []
         self.node_count = 1
         self.rollout_count = 0
@@ -93,10 +94,9 @@ class MCTS:
                 return child
 
     def rollout(self, state: SimWorld):
-        state = deepcopy(state)
+        state = Hex.clone_state(state)
         while not state.is_current_state_final():
             action_selected = self.policy_object.get_action(state)
-            #action_selected = choice(actions)  # TODO: get action from NN
             state = state.play_action(action_selected, inplace=True)
 
         self.rollout_count += 1
@@ -114,7 +114,7 @@ class MCTS:
         best_children = []
         best_value = float("-inf")
         for child in node.children.values():
-            val = player_turn.value * child.get_q() + child.get_uct(1)
+            val = player_turn.value * child.get_q() + child.get_uct(2)
             if val > best_value:
                 best_value = val
                 best_children = [child]
@@ -134,12 +134,15 @@ class MCTS:
     def update_root(self, action):
         self.rollout_count = 0
         self.root = self.root.children[action]
+        self.root.parent = None
+        self.root.children = {}
+        self.root.max_expansion = False
         self.reset_nodes()
 
     def reset_nodes(self):
         for node in self.nodes:
             node.N = 0
-            node.E = 0
+            #node.E = 0
 
     def print_stats(self):
         print(f"Used nodes: {self.node_count}\n"

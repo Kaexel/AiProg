@@ -13,15 +13,15 @@ from sim_worlds.sim_world import SimWorld
 
 
 class OnPolicyMonteCarlo:
-    def __init__(self, sim_world: SimWorld):
+    def __init__(self, sim_world: SimWorld, i_s, actual_games, search_games):
         self.sim_world = sim_world
-        self.board_size = sim_world.board_size
+        self.board_size = sim_world.get_board_shape()  # TODO: last inn fra config fil
 
-        self.i_s = 50  # Save interval for ANET parameters
+        self.i_s = i_s  # Save interval for ANET parameters
         self.rbuf = {'states': [], 'dists': []}
         self.model = nn.make_keras_model(32, self.board_size[1], self.board_size[0])  # TODO: set params
-        self.num_actual_games = 10
-        self.num_search_games = 1000
+        self.num_actual_games = actual_games
+        self.num_search_games = search_games
 
     def run_games(self):
 
@@ -42,11 +42,11 @@ class OnPolicyMonteCarlo:
                 sim_world = sim_world.play_action(action)
 
             print(f"{(time.time() - t):.3} seconds. Game # {g_a}")
-            self.model.fit(np.array(self.rbuf['states']), np.array(self.rbuf['dists']), epochs=10, batch_size=1)
+            self.model.fit(np.array(self.rbuf['states']), np.array(self.rbuf['dists']), epochs=10, batch_size=8)
             if g_a % self.i_s == 0:
-                pass
+                self.model.save(f"models/model_{g_a}")
                 # Save keras model
-        self.model.save("models")
+
 
     def gen_distribution(self, nodes):
         dist = np.zeros(shape=self.board_size, dtype='f')
