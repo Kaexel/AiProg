@@ -55,7 +55,7 @@ class Node:
 
 
 class MCTS:
-    def __init__(self, game_manager=HexManager(4), policy_object=RandomPolicy()):
+    def __init__(self, game_manager=HexManager(7), policy_object=RandomPolicy()):
 
         self.game_manager: GameManager = game_manager
         self.root = Node(game_manager.generate_initial_state())
