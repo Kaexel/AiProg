@@ -1,29 +1,34 @@
+import copy
 import math
 from copy import deepcopy
 from random import choice
 
 import numpy as np
 
+from sim_worlds.game_manager import GameManager
 from sim_worlds.hex import Hex
+from sim_worlds.hex_manager import HexManager
 from sim_worlds.sim_world import SimWorld
 
+
 class RandomPolicy:
-    def get_action(self, state):
-        return choice(state.get_legal_actions())
+    def get_action(self, state, mgr: GameManager):
+        actions = tuple(mgr.get_legal_actions(state))
+        return choice(actions)
 
 
 class Node:
-    def __init__(self, state: SimWorld, parent=None, move=None):  # Can maybe init without whole simworld object?
+    def __init__(self, state, parent=None, move=None, terminal_node=False):
         self.E = 0  # Value of node (sum of results)
         self.N = 0  # Number of times node visited
         self.parent: Node = parent
         self.children = {}  # Maps actions to nodes
-        self.s_a = {}
-        self.move = move
-        self.state: SimWorld = state
 
-        self.terminal_node = self.state.is_current_state_final()
-        self.max_expansion = self.terminal_node
+        self.move = move
+        self.state = state
+
+        self.terminal_node = terminal_node
+        self.max_expansion = terminal_node
 
     def add_child(self, child, move):
         self.children[move] = child
@@ -50,10 +55,10 @@ class Node:
 
 
 class MCTS:
-    def __init__(self, state=Hex.initialize_state(4, 4), policy_object=RandomPolicy()):
+    def __init__(self, game_manager=HexManager(4), policy_object=RandomPolicy()):
 
-        self.initial_state: SimWorld = state
-        self.root = Node(Hex.clone_state(state))
+        self.game_manager: GameManager = game_manager
+        self.root = Node(game_manager.generate_initial_state())
         self.nodes = []
         self.node_count = 1
         self.rollout_count = 0
@@ -81,11 +86,11 @@ class MCTS:
         return node
 
     def expand(self, node):  # Expands one node at a time
-        actions = node.state.get_legal_actions()
+        actions = self.game_manager.get_legal_actions(node.state)
         for action in actions:
             if action not in node.children:
-                new_state: SimWorld = node.state.play_action(action)
-                child = Node(new_state, node, action)
+                state = self.game_manager.play_action(action, node.state)
+                child = Node(copy.copy(state), node, action, terminal_node=self.game_manager.is_state_final(state))
                 self.node_count += 1
                 node.children[action] = child
                 #self.nodes.append(child)
@@ -93,14 +98,16 @@ class MCTS:
                     node.max_expansion = True
                 return child
 
-    def rollout(self, state: SimWorld):
-        state = Hex.clone_state(state)
-        while not state.is_current_state_final():
-            action_selected = self.policy_object.get_action(state)
-            state = state.play_action(action_selected, inplace=True)
+    def rollout(self, state):
+        playout_state = copy.copy(state)
+        move_count = 0
+        while not self.game_manager.is_state_final(playout_state):
+            action_selected = self.policy_object.get_action(playout_state, self.game_manager)
+            self.game_manager.play_action(action_selected, playout_state, inplace=True)
+            move_count += 1
 
         self.rollout_count += 1
-        winner = state.get_final_result()  # Maybe return value?
+        winner = self.game_manager.get_final_result(playout_state)  # Maybe return value?
         return winner
 
     def backpropagate(self, node: Node, result):

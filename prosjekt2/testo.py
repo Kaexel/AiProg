@@ -1,8 +1,10 @@
 import cProfile
+import time
 
 import numpy as np
 
 from disjoint_set import DisjointSetForest
+from mcts import MCTS
 from nn import make_keras_model, PolicyNetwork
 from opmc import OnPolicyMonteCarlo
 from sim_worlds.hex import Hex
@@ -17,10 +19,14 @@ num_actual = config["PRIMARY"].getint('NUM_ACTUAL_GAMES')
 num_rollout = config["PRIMARY"].getint('MCTS_NUM_ROLLOUTS')
 board_k = config["HEX"].getint('BOARD_K')
 
-opmc = OnPolicyMonteCarlo(Hex.initialize_state(board_k, board_k), 10, actual_games=num_actual, search_games=num_rollout)
+testo = MCTS()
+t = time.time()
+momo = testo.search(1000)
+print(f"{time.time() - t} seconds")
+#opmc = OnPolicyMonteCarlo(Hex.initialize_state(board_k, board_k), 50, actual_games=num_actual, search_games=num_rollout)
 #pr = cProfile.Profile()
 #pr.enable()
-opmc.run_games()
+#opmc.run_games()
 #pr.disable()
 #pr.print_stats()
 """

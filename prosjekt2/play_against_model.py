@@ -5,7 +5,7 @@ import nn
 import plotting
 from sim_worlds.hex import Hex
 
-model = keras.models.load_model('models/model_50')
+model = keras.models.load_model('models/model_200')
 
 testo = nn.make_keras_model(32, 5, 5)
 lite = nn.LiteModel.from_keras_model(model)
