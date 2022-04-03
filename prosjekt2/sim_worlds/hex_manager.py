@@ -62,10 +62,11 @@ class HexManager(GameManager):
     def get_legal_actions(self, state: HexState):
         actions = set()
         iterator = np.nditer(state.board, flags=["multi_index"])
-        for tile in iterator:
-            if tile == 0:
-                actions.add((iterator.multi_index[0], iterator.multi_index[1]))
-        return actions
+        actions = np.where(state.board == 0)
+        #for tile in iterator:
+        #    if tile == 0:
+        #        actions.add((iterator.multi_index[0], iterator.multi_index[1]))
+        return list(zip(actions[0], actions[1]))
 
     def board_traversal_dfs(self, current_tile, board, player_turn, visited=None):
         if visited is None:

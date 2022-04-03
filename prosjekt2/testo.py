@@ -22,7 +22,10 @@ board_k = config["HEX"].getint('BOARD_K')
 testo = MCTS()
 t = time.time()
 momo = testo.search(1000)
+
+
 print(f"{time.time() - t} seconds")
+exit()
 #opmc = OnPolicyMonteCarlo(Hex.initialize_state(board_k, board_k), 50, actual_games=num_actual, search_games=num_rollout)
 #pr = cProfile.Profile()
 #pr.enable()
