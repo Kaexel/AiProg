@@ -1,19 +1,16 @@
-import os
 import random
+from abc import abstractmethod, ABC
 
 import keras
-import torch
 from torch import nn
-from torch.utils.data import DataLoader
 # from torchvision import datasets, transforms
 import tensorflow as tf
-from tensorflow import keras as ker
-from keras.models import *
 from keras.layers import *
 
 import numpy as np
 
-from sim_worlds.sim_world import SimWorld
+from game_managers.game_manager import GameManager
+from sim_worlds.sim_world import Players
 
 
 class NeuralNetworkTorch(nn.Module):
@@ -46,8 +43,7 @@ t = NeuralNetworkTorch(1, 2, 3)
 
 def make_keras_model(w, rows, cols):
     model = keras.models.Sequential()
-    model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='valid', data_format='channels_first',
-                     activation='relu', input_shape=(5, rows + 2 , cols + 2)))
+    model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='valid', data_format='channels_first', activation='relu', input_shape=(5, rows, cols )))
                      #activation='relu', input_shape=(5, rows + 2, cols + 2)))
     model.add(BatchNormalizationV2())
     # model.add(Dropout(rate=0.2))
@@ -68,11 +64,20 @@ def make_keras_model(w, rows, cols):
     return model
 
 
-class PolicyNetwork:
+class PolicyObject(ABC):
+    """
+    Abstract class defining methods for policy objects
+    """
+    @abstractmethod
+    def get_action(self, state, mgr: GameManager):
+        raise NotImplementedError
+
+
+class PolicyNetwork(PolicyObject):
     def __init__(self, w, rows, cols):
         self.model = make_keras_model(w, rows, cols)
 
-    def get_action(self, state):
+    def get_action(self, state, mgr):
         nn_state_representation = state.nn_state_representation()
         move_distribution = self.model.predict(nn_state_representation)
 
@@ -81,7 +86,7 @@ class PolicyNetwork:
         return best_move // (state.board.shape[0] - 2), best_move % (state.board.shape[1] - 2)
 
 
-class LiteModel:
+class LiteModel(PolicyObject):
 
     @classmethod
     def from_file(cls, model_path):
@@ -106,13 +111,18 @@ class LiteModel:
         self.output_dtype = output_det["dtype"]
         self.epsilon = 0.05
 
-    def get_action(self, state: SimWorld):
+    def get_action(self, state, manager: GameManager):
         if random.random() > self.epsilon:
-            nn_state_representation = state.nn_state_representation()
+            nn_state_representation = manager.nn_state_representation(state)
             move_distribution = self.predict_single(nn_state_representation)
-            shape = state.get_board_shape()
-            move_distribution = move_distribution.reshape(state.get_board_shape())
-            legal_actions = state.get_legal_actions()
+            #shape = state.get_board_shape()
+            shape = manager.get_size()
+            move_distribution = move_distribution.reshape((shape, shape))
+            # We've rotated player two so that the model generalizes better.
+            # We therefore need to rotate the distribution back
+            if state.player_turn == Players.BLACK:
+                move_distribution = np.rot90(move_distribution)
+            legal_actions = manager.get_legal_actions(state)
             # TODO: 1D mask maybe faster? coords too 
             #action_indices = [shape[1] * action[0] + action[1] for action in legal_actions]
             mask = np.zeros(move_distribution.shape, dtype=bool)
@@ -120,11 +130,11 @@ class LiteModel:
                 mask[action] = True
             move_distribution = np.where(mask == True, move_distribution, 0)
             best_move = np.ndarray.argmax(move_distribution)
-            shape_b = state.get_board_shape()
-            return best_move // (shape_b[1]), best_move % (shape_b[0])
+
+            return best_move // (shape), best_move % (shape)
 
         else:
-            return random.choice(state.get_legal_actions())
+            return random.choice(manager.get_legal_actions(state))
 
 
 

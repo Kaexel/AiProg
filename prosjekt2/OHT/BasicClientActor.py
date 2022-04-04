@@ -1,11 +1,21 @@
-import math
+import keras
+import numpy as np
+
 from BasicClientActorAbs import BasicClientActorAbs
+from game_managers.hex_manager import HexManager
+
 
 class BasicClientActor(BasicClientActorAbs):
 
     def __init__(self, IP_address=None, verbose=True):
         self.series_id = -1
         BasicClientActorAbs.__init__(self, IP_address, verbose=verbose)
+        self.model = keras.models.load_model('models/model_200')
+        self.manager = HexManager(7)
+
+
+    def convert_board_representation(self, state):
+        return 0
 
     def handle_get_action(self, state):
         """
@@ -17,17 +27,10 @@ class BasicClientActor(BasicClientActorAbs):
         then you will see a 2 here throughout the entire series, whereas player 1 will see a 1.
         :return: Your actor's selected action as a tuple (row, column)
         """
-
-        # This is an example player who picks random moves. REMOVE THIS WHEN YOU ADD YOUR OWN CODE !!
-        next_move = tuple(self.pick_random_free_cell(
-            state, size=int(math.sqrt(len(state)-1))))
-        #############################
-        #
-        #
-        # YOUR CODE HERE
-        #
-        # next_move = ???
-        ##############################
+        board = np.array(state[1:], shape=(7, 7))
+        board = np.where(board == 2, -1, board)
+        converted_representation = self.manager.nn_state_representation(board)
+        next_move = self.model.predict(converted_representation)
         return next_move
 
     def handle_series_start(self, unique_id, series_id, player_map, num_games, game_params):

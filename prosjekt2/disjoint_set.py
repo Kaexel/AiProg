@@ -1,6 +1,5 @@
 import copy
 
-
 class HexSetUnit:
     def __init__(self, value: tuple, parent=None):
         self.value = value
@@ -15,7 +14,11 @@ class HexSetUnit:
     def __copy__(self):
         return HexSetUnit(self.value, copy.copy(self.parent))
 
+
 class DisjointSetForest:
+    """
+    Works very quickly to determine whether game is over. Agonizingly slow to copy in python however. Went over to use DFS on a numpy board instead.
+    """
     def __init__(self):
         self.forest = {}  # Map of array index tuples to sets
 

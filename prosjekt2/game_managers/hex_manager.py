@@ -1,8 +1,4 @@
-from copy import deepcopy
-
-from disjoint_set import DisjointSetForest
-from sim_worlds.game_manager import GameManager
-from sim_worlds.sim_world import SimWorld
+from game_managers.game_manager import GameManager
 from sim_worlds.sim_world import Players
 import numpy as np
 
@@ -54,7 +50,7 @@ class HexManager(GameManager):
     Class implementing a manager for Hex as defined in docs
     """
     def __init__(self, board_size):
-        self.board_size: int = board_size
+        super().__init__(board_size)
 
     def generate_initial_state(self):
         return HexState(np.array([[0 for _ in range(self.board_size)] for _ in range(self.board_size)], dtype='i'))
@@ -113,11 +109,11 @@ class HexManager(GameManager):
 
     def nn_state_representation(self, state):
         channels = np.zeros((5, state.board.shape[1], state.board.shape[0]), dtype=int)
-        channels[0] = np.where(state.board == 0, 1, 0)
-        channels[1] = np.where(state.board == 1, 1, 0)
-        channels[2] = np.where(state.board == 2, 1, 0)
-        channels[3] = np.ones_like(state.board) if state.player_turn == Players.BLACK else np.zeros_like(state.board)
-        channels[4] = np.ones_like(state.board) if state.player_turn == Players.WHITE else np.zeros_like(state.board)
+        channels[0] = np.where(state.board == 0, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 0, 1, 0), axes=(1,0))
+        channels[1] = np.where(state.board == 1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 1, 1, 0), axes=(1, 0))
+        channels[2] = np.where(state.board == -1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == -1, 1, 0), axes=(1, 0))
+        channels[3] = np.ones_like(state.board) if state.player_turn == Players.WHITE else np.zeros_like(state.board)
+        channels[4] = np.ones_like(state.board) if state.player_turn == Players.BLACK else np.zeros_like(state.board)
         """
         channel_empty = np.where(self.board == 0, 1, 0)
         channel_white = np.where(self.board == 1, 1, 0)
@@ -129,9 +125,6 @@ class HexManager(GameManager):
         channel_save_bridge = np.array((2, 2))
         channel_form_bridge = np.array((2, 2))
         """
-        if state.current_player == Players.BLACK:
-            channels = np.rot90(channels, axes=(1, 2))
-
         return channels
 
     def switch_player_turn(self, player_turn: Players):

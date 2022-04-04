@@ -1,14 +1,9 @@
 import copy
 import math
-from copy import deepcopy
 from random import choice
 
-import numpy as np
-
-from sim_worlds.game_manager import GameManager
-from sim_worlds.hex import Hex
-from sim_worlds.hex_manager import HexManager
-from sim_worlds.sim_world import SimWorld
+from game_managers.game_manager import GameManager
+from game_managers.hex_manager import HexManager
 
 
 class RandomPolicy:
@@ -42,7 +37,6 @@ class Node:
     def get_uct(self, exploration_c):
         if self.N == 0:
             return 1000000
-        #return exploration_c * math.sqrt(math.log(self.parent.N) / (1 + self.N))
         return exploration_c * math.sqrt(math.log(self.parent.N) / (self.N))
 
     def __str__(self):
@@ -129,7 +123,6 @@ class MCTS:
                 best_children.append(child)
 
         return choice(best_children)
-
 
     def gen_distribution(self):
         dist = []

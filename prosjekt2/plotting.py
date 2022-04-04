@@ -6,7 +6,7 @@ from matplotlib.patches import RegularPolygon
 from sim_worlds.hex import Hex
 
 
-def plot_board(state: Hex):
+def plot_board(state):
     fig, ax = plt.subplots(1)
     ax.set_aspect('equal')
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}

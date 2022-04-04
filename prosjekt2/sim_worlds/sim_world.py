@@ -30,7 +30,6 @@ class SimWorld:
         self.player_turn = Players.WHITE
         self.board_size = board_size
 
-
     def get_legal_actions(self):
         raise NotImplementedError
 
