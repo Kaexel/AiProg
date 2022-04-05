@@ -33,25 +33,36 @@ def run_series(model_l, model_r, num_games):
 
 def topp(models: list, num_games: int):
     # Every model plays two series of games against every other. One as player 1 and one as player 2
+    tourneys = {}
     while models:
         model_1 = models.pop()
         for model_2 in models:
-            win_1 = run_series(model_1, model_2, num_games)
-            win_2 = run_series(model_2, model_1, num_games)
+            win_1 = run_series(model_1[1], model_2[1], num_games)
+            win_2 = run_series(model_2[1], model_1[1], num_games)
+            tourneys[f"{model_1[0]}-{model_2[0]}"] = win_1
+            tourneys[f"{model_2[0]}-{model_1[0]}"] = win_2
+    return tourneys
 
-model_1 = keras.models.load_model('models/model_7_149')
+model_1 = keras.models.load_model('models/model_7_199')
 model_2 = keras.models.load_model('models/model_7_100_old')
 BOARD_SIZE = 7
 models = glob.glob(f"models/model_{BOARD_SIZE}_*")
-print(models)
-lite_1 = nn.LiteModel.from_keras_model(model_1)
-lite_2 = nn.LiteModel.from_keras_model(model_2)
+models = models[:3]
+loaded_models = [nn.LiteModel.from_keras_model(keras.models.load_model(model)) for model in models]
+models_list = list(zip(models, loaded_models))
 
-lite_1.epsilon = 0.05
-lite_2.epsilon = 0.05
-models = [lite_1, lite_2]
-print(run_series(lite_1, lite_2, 500))
-print(run_series(lite_2, lite_1, 500))
+wins = topp(models_list, 50)
+print(wins)
+
+
+#lite_1 = nn.LiteModel.from_keras_model(model_1)
+#lite_2 = nn.LiteModel.from_keras_model(model_2)
+
+#lite_1.epsilon = 1
+#lite_2.epsilon = 1
+#models = [lite_1, lite_2]
+#print(run_series(lite_1, lite_2, 500))
+#print(run_series(lite_2, lite_1, 500))
 
 
 
