@@ -1,6 +1,9 @@
+import random
 from random import choice
 import os
+import multiprocessing as mp
 
+import gui
 from game_managers.game_manager import GameManager
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -11,40 +14,61 @@ from mcts import MCTS
 
 
 class OnPolicyMonteCarlo:
-    def __init__(self, mgr: GameManager, i_s: int, actual_games: int, search_games: int):
+    def __init__(self, mgr: GameManager, i_s: int, actual_games: int, search_games: int, model, max_rbuf: int, sample_rbuf:int):
         self.manager = mgr
-        self.board_size = mgr.get_size()  # TODO: last inn fra config fil
+        self.board_size = mgr.get_size()
 
         self.i_s = i_s  # Save interval for ANET parameters
         self.rbuf = {'states': [], 'dists': []}
-        self.model = nn.make_keras_model(32, self.board_size, self.board_size)  # TODO: set params
+        self.model = model
         self.num_actual_games = actual_games
         self.num_search_games = search_games
+        self.max_rbuf_size = max_rbuf
+        self.num_sample_rbuf = sample_rbuf
+        self.gui = gui.GameGUI()
+
 
     def run_games(self):
-
+        start_time = time.time()
+        # Caching an untrained net
+        self.model.save(f"models/model_{self.board_size}_{0}")
         for g_a in range(self.num_actual_games):
             t = time.time()
             move_count = 0
             actual_state = self.manager.generate_initial_state()
             mcts = MCTS(self.manager, policy_object=nn.LiteModel.from_keras_model(self.model))
+            self.gui.update_title(f"Game # {g_a}")
             while not self.manager.is_state_final(actual_state):
+
                 moves_to_consider = mcts.search(self.num_search_games)
+                #moves_to_consider = mcts.parallel_search(self.num_search_games)  # TODO: make parallelization work maybe
                 action = self.choose_action(moves_to_consider)  # TODO: fix this
                 distribution = self.gen_distribution(moves_to_consider)
 
                 self.rbuf['states'].append(self.manager.nn_state_representation(actual_state))
                 self.rbuf['dists'].append(distribution)
+
                 move_count += 1
                 mcts.update_root(action)
                 self.manager.play_action(action, actual_state, inplace=True)
+                if self.gui.get_board_state():
+                    self.gui.update_plot(actual_state)
+                self.gui.update_gui()
 
-            print(f"{(time.time() - t):.3} seconds. Game # {g_a}")
-            self.model.fit(np.array(self.rbuf['states']), np.array(self.rbuf['dists']), epochs=10, batch_size=8)
-            if g_a % self.i_s == 0:
-                self.model.save(f"models/model_{g_a}")
-                # Save keras model
+            print(f"{(time.time() - t):.4} seconds. Game # {g_a}")
+            # Remove oldest elements from replay buffer if too long
+            if len(self.rbuf['states']) > self.max_rbuf_size:
+                diff = len(self.rbuf['states']) - self.max_rbuf_size
+                self.rbuf['states'] = self.rbuf['states'][diff:]
+                self.rbuf['dists'] = self.rbuf['dists'][diff:]
+            # Random sampling of states and distributions
+            states, dists = zip(*random.sample(list(zip(self.rbuf['states'], self.rbuf['dists'])), min(len(self.rbuf['states']), self.num_sample_rbuf)))
+            self.model.fit(np.array(states), np.array(dists), epochs=20, batch_size=8)
+            if (g_a + 1) % self.i_s == 0:
+                self.model.save(f"models/model_{self.board_size}_{g_a + 1}")
 
+        print(f"Ran {self.num_actual_games}  episodes with {self.num_search_games} rollouts per move \n"
+              f"Time spent: {(time.time() - start_time):.4} seconds")
 
     def gen_distribution(self, nodes):
         dist = np.zeros(shape=(self.board_size, self.board_size), dtype='f')

@@ -3,29 +3,54 @@ from tensorflow import keras
 
 import nn
 import plotting
-from sim_worlds.hex import Hex
+from game_managers.hex_manager import HexManager
 
-model = keras.models.load_model('models/model_200')
-
-testo = nn.make_keras_model(32, 5, 5)
+model = keras.models.load_model('models/model_7_99')
 lite = nn.LiteModel.from_keras_model(model)
-sim_world = Hex.initialize_state(5, 5)
-plotting.plot_board(sim_world)
+manager = HexManager(7)
+state = manager.generate_initial_state()
+
 lite.epsilon = 0
-while not sim_world.is_current_state_final():
 
-    nn_move = lite.get_action(sim_world)
-    sim_world.play_action(nn_move, True)
-    plotting.plot_board(sim_world)
-    print(sim_world.board)
-    print(np.rot90(sim_world.board))
-    print(sim_world.board)
 
-    actions = sim_world.get_legal_actions()
-    user_input = None
-    while user_input not in actions:
-        a = input("move!")
-        user_input = tuple(int(x) for x in a.split(","))
-    sim_world.play_action(user_input, True)
-    plotting.plot_board(sim_world)
+def start_first():
+    plotting.plot_board(state)
+    while 1:
+        actions = manager.get_legal_actions(state)
+        user_input = None
+        while user_input not in actions:
+            a = input("move!")
+            user_input = tuple(int(x) for x in a.split(","))
+        manager.play_action(user_input, state, True)
+        plotting.plot_board_45(state)
+        if manager.is_state_final(state):
+            break
 
+        nn_move = lite.get_action(state=state, manager=manager)
+        manager.play_action(nn_move, state, True)
+        plotting.plot_board_45(state)
+        if manager.is_state_final(state):
+            break
+
+
+def start_second():
+    plotting.plot_board(state)
+    while 1:
+
+        nn_move = lite.get_action(state=state, manager=manager)
+        manager.play_action(nn_move, state, True)
+        plotting.plot_board(state)
+        if manager.is_state_final(state):
+            break
+        actions = manager.get_legal_actions(state)
+        user_input = None
+        while user_input not in actions:
+            a = input("move!")
+            user_input = tuple(int(x) for x in a.split(","))
+        manager.play_action(user_input, state, True)
+        plotting.plot_board(state)
+        if manager.is_state_final(state):
+            break
+
+
+start_second()

@@ -49,9 +49,6 @@ class SimWorld:
         assert self.is_current_state_final()
         return self.player_turn.value
 
-    def get_illegal_actions(self):
-        raise NotImplementedError
-
     def to_play(self):
         return self.player_turn
 

@@ -5,7 +5,6 @@ class GameManager(ABC):
     """
     Abstract class to represent a board game with a clear difference between the manager and the state. Works well in python, where memory allocation can be very slow.
     """
-
     def __init__(self, board_size):
         self.board_size: int = board_size
 

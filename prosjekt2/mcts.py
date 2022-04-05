@@ -4,7 +4,7 @@ from random import choice
 
 from game_managers.game_manager import GameManager
 from game_managers.hex_manager import HexManager
-
+import multiprocessing as mp
 
 class RandomPolicy:
     def get_action(self, state, mgr: GameManager):
@@ -57,6 +57,12 @@ class MCTS:
         self.node_count = 1
         self.rollout_count = 0
         self.policy_object = policy_object
+
+    def parallel_search(self, max_rollouts):
+        with mp.Pool(8) as pool:
+            nodes = pool.apply_async(self.search, (100,))
+            print(nodes.get(100))
+
 
     def search(self, max_rollouts):
         for i in range(max_rollouts):

@@ -2,10 +2,10 @@ import random
 from abc import abstractmethod, ABC
 
 import keras
+import tensorflow
 from torch import nn
 # from torchvision import datasets, transforms
 import tensorflow as tf
-from keras.layers import *
 
 import numpy as np
 
@@ -38,28 +38,22 @@ class NeuralNetworkTorch(nn.Module):
         return logits
 
 
-t = NeuralNetworkTorch(1, 2, 3)
+def make_keras_model(filters: tuple, dense: tuple, rows, cols, activation_function, optimizer):
+    model = tf.keras.Sequential()
+    # Setting up conv layers
+    model.add(tf.keras.layers.Conv2D(filters=filters[0], kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation=activation_function, input_shape=(5, rows, cols)))
+    model.add(tf.keras.layers.BatchNormalization())
+    if len(filters) > 1:
+        for w in filters[1:]:
+            model.add(tf.keras.layers.Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation=activation_function))
+            model.add(tf.keras.layers.BatchNormalization())
 
-
-def make_keras_model(w, rows, cols):
-    model = keras.models.Sequential()
-    model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='valid', data_format='channels_first', activation='relu', input_shape=(5, rows, cols )))
-                     #activation='relu', input_shape=(5, rows + 2, cols + 2)))
-    model.add(BatchNormalizationV2())
-    # model.add(Dropout(rate=0.2))
-    model.add(Conv2D(filters=w, kernel_size=(5, 5), strides=1, padding='same', data_format='channels_first', activation='relu'))
-    model.add(BatchNormalizationV2())
-    model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation='relu'))
-    model.add(BatchNormalizationV2())
-    #model.add(Conv2D(filters=1, kernel_size=(1, 1), strides=1, padding='valid', activation="softmax"))
-    # model.add(Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_last', activation='relu'))
-    # model.add(Conv2D(filters=rows*cols, kernel_size=(1, 1), strides=1, padding='valid', data_format='channels_last', activation='softmax'))
-    model.add(Flatten())
-    model.add(Dense(256, activation="relu"))
-    model.add(Dense(rows * cols, activation="softmax"))
+    # Setting up final dense layers
+    model.add(tf.keras.layers.Flatten())
+    for neurons in dense:
+        model.add(tf.keras.layers.Dense(neurons, activation=activation_function))
+    model.add(tf.keras.layers.Dense(rows * cols, activation="softmax"))
     model.summary()
-    #optimizer = tf.optimizers.Adam(learning_rate=0.0001)
-    optimizer = tf.optimizers.Adam()
     model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
     return model
 
@@ -71,19 +65,6 @@ class PolicyObject(ABC):
     @abstractmethod
     def get_action(self, state, mgr: GameManager):
         raise NotImplementedError
-
-
-class PolicyNetwork(PolicyObject):
-    def __init__(self, w, rows, cols):
-        self.model = make_keras_model(w, rows, cols)
-
-    def get_action(self, state, mgr):
-        nn_state_representation = state.nn_state_representation()
-        move_distribution = self.model.predict(nn_state_representation)
-
-        best_move = np.argmax(move_distribution)
-
-        return best_move // (state.board.shape[0] - 2), best_move % (state.board.shape[1] - 2)
 
 
 class LiteModel(PolicyObject):
@@ -109,34 +90,32 @@ class LiteModel(PolicyObject):
         self.output_shape = output_det["shape"]
         self.input_dtype = input_det["dtype"]
         self.output_dtype = output_det["dtype"]
-        self.epsilon = 0.05
+        self.epsilon = 0.15
+
 
     def get_action(self, state, manager: GameManager):
-        if random.random() > self.epsilon:
-            nn_state_representation = manager.nn_state_representation(state)
-            move_distribution = self.predict_single(nn_state_representation)
-            #shape = state.get_board_shape()
-            shape = manager.get_size()
-            move_distribution = move_distribution.reshape((shape, shape))
-            # We've rotated player two so that the model generalizes better.
-            # We therefore need to rotate the distribution back
-            if state.player_turn == Players.BLACK:
-                move_distribution = np.rot90(move_distribution)
-            legal_actions = manager.get_legal_actions(state)
-            # TODO: 1D mask maybe faster? coords too 
-            #action_indices = [shape[1] * action[0] + action[1] for action in legal_actions]
-            mask = np.zeros(move_distribution.shape, dtype=bool)
-            for action in legal_actions:
-                mask[action] = True
-            move_distribution = np.where(mask == True, move_distribution, 0)
-            best_move = np.ndarray.argmax(move_distribution)
 
-            return best_move // (shape), best_move % (shape)
-
-        else:
-            return random.choice(manager.get_legal_actions(state))
+        nn_state_representation = manager.nn_state_representation(state)
+        move_distribution = self.predict_single(nn_state_representation)
+        board_size = manager.get_size()
 
 
+        # TODO: keep working on rotation
+        # We've rotated player two so that the model generalizes better.
+        # We therefore need to rotate the distribution back
+        #if state.player_turn == Players.BLACK:
+        #    move_distribution = np.rot90(move_distribution)
+        legal_actions = manager.get_legal_actions(state)
+        legal_action_indices = [board_size * y + x for y, x in legal_actions]
+        move_distribution_weights = move_distribution[legal_action_indices]
+
+        #choice = np.random.choice(np.array(legal_actions, dtype=('i','i')), move_distribution_weights)
+
+        # Balancing probability of picking best move and picking random choice weighted by distribution
+        if random.random() >= self.epsilon:
+            return legal_actions[np.ndarray.argmax(move_distribution_weights)]
+        move_distribution_weights = move_distribution_weights / sum(move_distribution_weights)
+        return random.choices(legal_actions, weights=move_distribution_weights)[0]
 
     def predict(self, inp):
         inp = inp.astype(self.input_dtype)

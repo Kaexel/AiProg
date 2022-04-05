@@ -38,7 +38,8 @@ def add_edges_to_forest(board, forest, shape):
 
 class Hex(SimWorld):
     """
-    Class implementing Hex as defined in docs
+    Class implementing Hex as defined in docs. I realized separating the game from the state was more efficient (which is impemented in the GameManager class).
+    This is kept for posterity.
     """
     @classmethod
     def clone_state(cls, state):
