@@ -12,11 +12,14 @@ import nn
 import plotting
 from game_managers.hex_manager import HexManager
 
-# TODO: make fancy GUI
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 class GameGUI:
+    """
+    Gui used for visualizing during training
+    TODO: multiprocessing so it's more responsive
+    """
     def __init__(self):
         self.root = Tk()
 
@@ -43,7 +46,6 @@ class GameGUI:
         button2.pack(side=RIGHT)
 
 
-
     def get_board_state(self):
         return self.board_figure.get_visible()
 
@@ -65,11 +67,10 @@ class GameGUI:
         self.root.update()
 
 
-class TourneyState(Enum):
-    pass
-
-
 class TournamentGUI:
+    """
+    GUI for visualization of tournaments
+    """
     def __init__(self, num_games, model_paths: list):
         self.root = Tk()
         self.root.geometry('600x400')
@@ -89,10 +90,8 @@ class TournamentGUI:
         self.canvas.get_tk_widget().pack()
         self.board_label_frame.pack(side=RIGHT, fill='both', expand=True)
 
-
         self.info_label_frame = LabelFrame(self.root, text="info", width=100, height=90, background="blue")
         self.info_text = Text(self.info_label_frame)
-        self.info_text.insert(1.0, "skadooshasjdkljasopkejdqwoije\nqwpej\nqwopiejqw\nqweqw")
         self.info_text.pack(fill=None, expand=False)
         self.info_label_frame.pack(side=LEFT, fill='both', expand=True)
 
@@ -103,6 +102,7 @@ class TournamentGUI:
         self.num_games = num_games
         self.manager = HexManager(5)
         self.state = self.manager.generate_initial_state()
+        self.update_plot(self.state)
         self.game_in_series = 0
 
         self.models = self.load_models(model_paths)
@@ -121,12 +121,6 @@ class TournamentGUI:
         self.win_count_1 = 0
         self.win_count_2 = 0
         self.scores = {}
-
-
-
-        #frame = Frame(root)
-        #frame.pack()
-
 
         button = Button(self.button_frame,
                    text="Show current game",
@@ -151,21 +145,21 @@ class TournamentGUI:
                    command=self.next_move)
         button4.pack(side=RIGHT)
 
-
+    # Plays next move
     def next_move(self):
         self.update_info()
         nn_move = self.get_move(self.state)
-        #self.state.set(1)
         self.manager.play_action(nn_move, self.state, True)
         self.update_plot(self.state)
         if self.manager.is_state_final(self.state):
             self.reset_game()
         self.cur_mod, self.waiting_mod = self.waiting_mod, self.cur_mod
 
-
+    # Speeds through current series
     def play_through_series(self):
         self.finish_series()
 
+    # Speeds through current game
     def play_through_game(self):
         result = self.finish_game()
         self.state = self.manager.generate_initial_state()
@@ -196,13 +190,14 @@ class TournamentGUI:
         self.root.update_idletasks()
         self.root.update()
 
+    # Loads the models from the list of model paths given
     def load_models(self, models):
         loaded_models = [nn.LiteModel.from_keras_model(keras.models.load_model(model)) for model in models]
         models = [model.split("\\")[-1] for model in models]
         models_list = list(zip(models, loaded_models))
         return models_list
 
-
+    # Resets game board and updates relevant variables
     def reset_game(self):
         self.game_in_series += 1
         # Update winner of previous game
@@ -253,7 +248,7 @@ class TournamentGUI:
 
             self.model_r = self.models[self.model_r_idx]
 
-
+    # Speeds through current game
     def finish_game(self):
         while not self.manager.is_state_final(self.state):
             nn_move = self.cur_mod[1].get_action(self.state, self.manager)
@@ -264,7 +259,7 @@ class TournamentGUI:
                 return
             self.cur_mod, self.waiting_mod = self.waiting_mod, self.cur_mod
 
-
+    # Speeds through current series
     def finish_series(self):
         for _ in range(self.num_games - self.game_in_series):
             self.finish_game()
@@ -272,9 +267,3 @@ class TournamentGUI:
     def get_move(self, state):
         return self.cur_mod[1].get_action(state, self.manager)
 
-
-#g = GameGUI()
-#g.update_plot(state)
-#manager.play_action((0,0), state, True)
-#g.update_plot(state)
-#g.root.mainloop()

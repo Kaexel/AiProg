@@ -6,6 +6,7 @@ from game_managers.game_manager import GameManager
 from game_managers.hex_manager import HexManager
 import multiprocessing as mp
 
+
 # Policy object that performs random action
 class RandomPolicy:
     def get_action(self, state, mgr: GameManager):

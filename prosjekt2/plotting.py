@@ -5,6 +5,10 @@ import numpy as np
 from matplotlib.patches import RegularPolygon
 
 
+"""
+Various plotting functions. Might need a refactor.
+"""
+
 # Plots the board as lying hex
 def plot_board(state):
     fig, ax = plt.subplots(1)

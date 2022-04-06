@@ -1,44 +1,22 @@
 import random
 from abc import abstractmethod, ABC
-import ray
-import keras
-import tensorflow
-from torch import nn
-# from torchvision import datasets, transforms
 import tensorflow as tf
 
 import numpy as np
-import flatbuffers
+
 from game_managers.game_manager import GameManager
-from sim_worlds.sim_world import Players
-
-
-class NeuralNetworkTorch(nn.Module):
-    def __init__(self, x, y, w):
-        super(NeuralNetworkTorch, self).__init__()
-        self.flatten = nn.Flatten()
-        self.model = nn.Sequential(
-            nn.Conv2d(9, w, (5, 5), stride=(1, 1)),  # TODO: remember to pad image with two rows/columns of black/white
-            nn.ReLU(),
-            nn.Conv2d(w, w, (3, 3), stride=(1, 1), padding=1),
-            nn.ReLU(),
-            nn.Conv2d(w, w, (3, 3), stride=(1, 1), padding=1),
-            nn.ReLU(),
-            nn.Conv2d(w, w, (3, 3), stride=(1, 1), padding=1),
-            nn.ReLU(),
-            nn.Conv2d(w, w, (3, 3), stride=(1, 1), padding=1),
-            nn.ReLU(),
-            nn.Conv2d(w, 1, (1, 1), stride=(1, 1), padding=1),  # TODO: output must be x*y, and scaled to x*y - q
-            nn.Softmax(),
-        )
-
-    def forward(self, x):
-        x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
 
 
 def make_keras_model(filters: tuple, dense: tuple, rows, cols, activation_function, optimizer):
+    """
+    :param filters: tuple of # filters used for each conv layer
+    :param dense: tuple of # neurons used for each dense layer
+    :param rows: rows on board
+    :param cols: cols on board
+    :param activation_function: activation function to be used for layers
+    :param optimizer: optimizer to be used in model
+    :return: compiled model
+    """
     model = tf.keras.Sequential()
     # Setting up conv layers
     model.add(tf.keras.layers.Conv2D(filters=filters[0], kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation=activation_function, input_shape=(6, rows, cols)))
@@ -71,7 +49,9 @@ class PolicyObject(ABC):
 
 
 class PolicyModel(PolicyObject):
-
+    """
+    Policy object using keras predict API.
+    """
     def __init__(self, model):
         self.model = model
         self.epsilon = 0.015
@@ -101,7 +81,9 @@ class PolicyModel(PolicyObject):
 
 
 class LiteModel(PolicyObject):
-
+    """
+    Policy object using Tflite. MUCH faster.
+    """
     @classmethod
     def from_file(cls, model_path):
         return LiteModel(tf.lite.Interpreter(model_path=model_path))

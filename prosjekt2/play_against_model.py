@@ -4,6 +4,10 @@ from tensorflow import keras
 import nn
 import plotting
 from game_managers.hex_manager import HexManager
+"""
+Helper functions to play against a trained net
+"""
+
 
 model = keras.models.load_model('models\\5_dense_double_empties\\model_5_50')
 lite = nn.LiteModel.from_keras_model(model)

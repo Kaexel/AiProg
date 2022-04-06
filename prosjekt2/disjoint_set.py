@@ -1,5 +1,10 @@
 import copy
 
+"""
+A solution used to determine very quickly whether a game is over.
+Replaced by DFS through a np array due to deecopy() being slow.
+"""
+
 class HexSetUnit:
     def __init__(self, value: tuple, parent=None):
         self.value = value
