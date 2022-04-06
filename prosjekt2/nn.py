@@ -8,7 +8,7 @@ from torch import nn
 import tensorflow as tf
 
 import numpy as np
-
+import flatbuffers
 from game_managers.game_manager import GameManager
 from sim_worlds.sim_world import Players
 
@@ -67,6 +67,36 @@ class PolicyObject(ABC):
         raise NotImplementedError
 
 
+class PolicyModel(PolicyObject):
+
+    def __init__(self, model):
+        self.model = model
+        self.epsilon = 0.015
+
+    def get_action(self, state, mgr: GameManager):
+
+        nn_state_representation = mgr.nn_state_representation(state)
+        move_distribution = self.model.predict(nn_state_representation.reshape((1, 5, 5, 5))).reshape((25,))
+        board_size = mgr.get_size()
+
+        # TODO: keep working on rotation
+        # We've rotated player two so that the model generalizes better.
+        # We therefore need to rotate the distribution back
+        #if state.player_turn == Players.BLACK:
+        #    move_distribution = np.rot90(np.reshape(move_distribution, (board_size, board_size))).flatten()
+        legal_actions = mgr.get_legal_actions(state)
+        legal_action_indices = [board_size * y + x for y, x in legal_actions]
+        move_distribution_weights = move_distribution[legal_action_indices]
+
+        #choice = np.random.choice(np.array(legal_actions, dtype=('i','i')), move_distribution_weights)
+
+        # Balancing probability of picking best move and picking random choice weighted by distribution
+        if random.random() >= self.epsilon:
+            return legal_actions[np.ndarray.argmax(move_distribution_weights)]
+        move_distribution_weights = move_distribution_weights / sum(move_distribution_weights)
+        return random.choices(legal_actions, weights=move_distribution_weights)[0]
+
+
 class LiteModel(PolicyObject):
 
     @classmethod
@@ -90,11 +120,9 @@ class LiteModel(PolicyObject):
         self.output_shape = output_det["shape"]
         self.input_dtype = input_det["dtype"]
         self.output_dtype = output_det["dtype"]
-        self.epsilon = 0.05
-
+        self.epsilon = 0.1
 
     def get_action(self, state, manager: GameManager):
-
         nn_state_representation = manager.nn_state_representation(state)
         move_distribution = self.predict_single(nn_state_representation)
         board_size = manager.get_size()
@@ -104,7 +132,7 @@ class LiteModel(PolicyObject):
         # We've rotated player two so that the model generalizes better.
         # We therefore need to rotate the distribution back
         #if state.player_turn == Players.BLACK:
-        #    move_distribution = np.rot90(move_distribution)
+        #    move_distribution = np.rot90(np.reshape(move_distribution, (board_size, board_size))).flatten()
         legal_actions = manager.get_legal_actions(state)
         legal_action_indices = [board_size * y + x for y, x in legal_actions]
         move_distribution_weights = move_distribution[legal_action_indices]

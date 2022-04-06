@@ -5,9 +5,9 @@ import nn
 import plotting
 from game_managers.hex_manager import HexManager
 
-model = keras.models.load_model('models/model_7_99')
+model = keras.models.load_model('models/model_5_200')
 lite = nn.LiteModel.from_keras_model(model)
-manager = HexManager(7)
+manager = HexManager(5)
 state = manager.generate_initial_state()
 
 lite.epsilon = 0
@@ -22,13 +22,13 @@ def start_first():
             a = input("move!")
             user_input = tuple(int(x) for x in a.split(","))
         manager.play_action(user_input, state, True)
-        plotting.plot_board_45(state)
+        plotting.plot_board(state)
         if manager.is_state_final(state):
             break
 
         nn_move = lite.get_action(state=state, manager=manager)
         manager.play_action(nn_move, state, True)
-        plotting.plot_board_45(state)
+        plotting.plot_board(state)
         if manager.is_state_final(state):
             break
 
@@ -53,4 +53,4 @@ def start_second():
             break
 
 
-start_second()
+start_first()

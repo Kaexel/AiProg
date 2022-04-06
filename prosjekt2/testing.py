@@ -1,24 +1,20 @@
-import numpy as np
+import copy
+import multiprocessing as mp
+import timeit
+
+import nn
 from tensorflow import keras
 
-from nn import LiteModel
-from game_managers.hex_manager import HexManager, HexState
-from sim_worlds.sim_world import Players
+print("Number of processors: ", mp.cpu_count())
+model = "models\\model_7_149"
+pc = nn.LiteModel.from_keras_model(keras.models.load_model(model))
+with open('tflite\\model.tflite', 'wb') as f:
+  f.write(pc)
 
-mgr = HexManager(4)
+def loader(pc):
+    q = nn.LiteModel.from_file(pc)
 
-board = np.array([
-    [1,-1,1,1],
-    [0,1,1,-1],
-    [1,0,1,1],
-    [-1,-1,-1,-1]])
-state = HexState(board, player_turn=Players.BLACK)
-state2 = HexState(board, player_turn=Players.WHITE)
-model = LiteModel.from_keras_model(keras.models.load_model('models/model_200'))
+popo = timeit.timeit(lambda: loader('tflite\\model.tflite'), number=100)
 
-print(state.board)
-print(mgr.nn_state_representation(state))
-print(mgr.nn_state_representation(state2))
-model.get_action(state, mgr)
-q = mgr.is_state_final(state)
-print(q)
+print(popo)
+

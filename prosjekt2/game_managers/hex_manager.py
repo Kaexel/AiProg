@@ -3,6 +3,7 @@ from sim_worlds.sim_world import Players
 import numpy as np
 
 
+
 neighbors = [(-1, 0), (-1, 1), (0, 1), (1, 0), (1, -1), (0, -1)]  # Possible neighbor offsets
 # TODO: apply bridge information to representation
 bridge_endpoints = [(-1, -1), (-2, 1), (-1, 2), (1, 1), (2, -1), (1, -2)]  # Possible bridge points
@@ -27,9 +28,11 @@ class HexManager(GameManager):
     """
     def __init__(self, board_size):
         super().__init__(board_size)
+        self.zero_board = np.zeros((board_size, board_size))
+        self.ones_board = np.ones((board_size, board_size))
 
     def generate_initial_state(self):
-        return HexState(np.array([[0 for _ in range(self.board_size)] for _ in range(self.board_size)], dtype='i'))
+        return HexState(np.zeros((self.board_size, self.board_size)))
 
     def get_legal_actions(self, state: HexState):
         actions = np.where(state.board == 0)
@@ -81,11 +84,17 @@ class HexManager(GameManager):
 
     def nn_state_representation(self, state):
         channels = np.zeros((5, state.board.shape[1], state.board.shape[0]), dtype=int)
-        channels[0] = np.where(state.board == 0, 1, 0)  #if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 0, 1, 0), axes=(1,0))
-        channels[1] = np.where(state.board == 1, 1, 0)  #if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 1, 1, 0), axes=(1, 0))
-        channels[2] = np.where(state.board == -1, 1, 0)  # if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == -1, 1, 0), axes=(1, 0))
-        channels[3] = np.ones_like(state.board) if state.player_turn == Players.WHITE else np.zeros_like(state.board)
-        channels[4] = np.ones_like(state.board) if state.player_turn == Players.BLACK else np.zeros_like(state.board)
+        channels[0] = np.where(state.board == 0, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 0, 1, 0), axes=(1, 0))
+        channels[1] = np.where(state.board == 1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 1, 1, 0), axes=(1, 0))
+        channels[2] = np.where(state.board == -1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == -1, 1, 0), axes=(1, 0))
+        #print(state.board[state.board == 0])
+        #channels[0] = state.board[state.board == 0] if state.player_turn == Players.WHITE else np.rot90(state.board[state.board == 0], axes=(1, 0))
+        #channels[1] = state.board[state.board == 1] if state.player_turn == Players.WHITE else np.rot90(state.board[state.board == 1], axes=(1, 0))
+        #channels[2] = state.board[state.board == -1] if state.player_turn == Players.WHITE else np.rot90(state.board[state.board == -1], axes=(1, 0))
+
+
+        channels[3] = self.ones_board if state.player_turn == Players.WHITE else self.zero_board
+        channels[4] = self.ones_board if state.player_turn == Players.BLACK else self.zero_board
 
         # TODO: features for bridge points
         """

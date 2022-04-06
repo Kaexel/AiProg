@@ -6,10 +6,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import plotting
 from game_managers.hex_manager import HexManager
 
-manager = HexManager(7)
-state = manager.generate_initial_state()
-plot, ax = plotting.get_plot(state)
-plot.show()
+# TODO: make fancy GUI
+
 class GameGUI:
     def __init__(self):
         self.root = Tk()
@@ -55,7 +53,6 @@ class GameGUI:
         self.root.update()
 
 
-# TODO: make fancy GUI
 #g = GameGUI()
 #g.update_plot(state)
 #manager.play_action((0,0), state, True)

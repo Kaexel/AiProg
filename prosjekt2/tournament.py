@@ -13,7 +13,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 def run_series(model_l, model_r, num_games):
     win_count_1 = 0
     win_count_2 = 0
-    manager = HexManager(7)
+    manager = HexManager(5)
     for _ in range(num_games):
         state = manager.generate_initial_state()
         while not manager.is_state_final(state):
@@ -43,15 +43,16 @@ def topp(models: list, num_games: int):
             tourneys[f"{model_2[0]}-{model_1[0]}"] = win_2
     return tourneys
 
-model_1 = keras.models.load_model('models/model_7_199')
-model_2 = keras.models.load_model('models/model_7_100_old')
-BOARD_SIZE = 7
+BOARD_SIZE = 5
 models = glob.glob(f"models/model_{BOARD_SIZE}_*")
-models = models[:3]
+#models = ["models\\model_7_50", "models\\model_7_49"]
+#models = ["models\\model_5_50", "models\\model_5_150"]
+#print(models)
 loaded_models = [nn.LiteModel.from_keras_model(keras.models.load_model(model)) for model in models]
+models = [model.split("\\")[-1]for model in models]
 models_list = list(zip(models, loaded_models))
 
-wins = topp(models_list, 50)
+wins = topp(models_list, 100)
 print(wins)
 
 

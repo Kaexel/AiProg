@@ -5,6 +5,7 @@ import multiprocessing as mp
 
 import gui
 from game_managers.game_manager import GameManager
+from sim_worlds.sim_world import Players
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import numpy as np
@@ -14,7 +15,7 @@ from mcts import MCTS
 
 
 class OnPolicyMonteCarlo:
-    def __init__(self, mgr: GameManager, i_s: int, actual_games: int, search_games: int, model, max_rbuf: int, sample_rbuf:int):
+    def __init__(self, mgr: GameManager, i_s: int, actual_games: int, search_games: int, model, max_rbuf: int, sample_rbuf:int, gui: gui.GameGUI=None):
         self.manager = mgr
         self.board_size = mgr.get_size()
 
@@ -25,25 +26,28 @@ class OnPolicyMonteCarlo:
         self.num_search_games = search_games
         self.max_rbuf_size = max_rbuf
         self.num_sample_rbuf = sample_rbuf
-        self.gui = gui.GameGUI()
+        self.gui = gui
 
 
     def run_games(self):
         start_time = time.time()
         # Caching an untrained net
         self.model.save(f"models/model_{self.board_size}_{0}")
+
         for g_a in range(self.num_actual_games):
             t = time.time()
             move_count = 0
             actual_state = self.manager.generate_initial_state()
             mcts = MCTS(self.manager, policy_object=nn.LiteModel.from_keras_model(self.model))
-            self.gui.update_title(f"Game # {g_a}")
+            #mcts = MCTS(self.manager, policy_object=nn.PolicyModel(self.model))
+            if self.gui:
+                self.gui.update_title(f"Game # {g_a}")
             while not self.manager.is_state_final(actual_state):
 
                 moves_to_consider = mcts.search(self.num_search_games)
                 #moves_to_consider = mcts.parallel_search(self.num_search_games)  # TODO: make parallelization work maybe
                 action = self.choose_action(moves_to_consider)  # TODO: fix this
-                distribution = self.gen_distribution(moves_to_consider)
+                distribution = self.gen_distribution(moves_to_consider, actual_state.player_turn)
 
                 self.rbuf['states'].append(self.manager.nn_state_representation(actual_state))
                 self.rbuf['dists'].append(distribution)
@@ -51,9 +55,10 @@ class OnPolicyMonteCarlo:
                 move_count += 1
                 mcts.update_root(action)
                 self.manager.play_action(action, actual_state, inplace=True)
-                if self.gui.get_board_state():
-                    self.gui.update_plot(actual_state)
-                self.gui.update_gui()
+                if self.gui:
+                    if self.gui.get_board_state():
+                        self.gui.update_plot(actual_state)
+                    self.gui.update_gui()
 
             print(f"{(time.time() - t):.4} seconds. Game # {g_a}")
             # Remove oldest elements from replay buffer if too long
@@ -70,10 +75,12 @@ class OnPolicyMonteCarlo:
         print(f"Ran {self.num_actual_games}  episodes with {self.num_search_games} rollouts per move \n"
               f"Time spent: {(time.time() - start_time):.4} seconds")
 
-    def gen_distribution(self, nodes):
+    def gen_distribution(self, nodes, p_turn):
         dist = np.zeros(shape=(self.board_size, self.board_size), dtype='f')
         for move, value in nodes.items():
             dist[move] = value / self.num_search_games
+        #if p_turn == Players.BLACK:
+        #    dist = np.rot90(dist, axes=(1, 0))
         return dist.flatten()
 
     def choose_action(self, distribution):

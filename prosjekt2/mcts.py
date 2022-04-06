@@ -6,6 +6,7 @@ from game_managers.game_manager import GameManager
 from game_managers.hex_manager import HexManager
 import multiprocessing as mp
 
+# Policy object that performs random action
 class RandomPolicy:
     def get_action(self, state, mgr: GameManager):
         actions = tuple(mgr.get_legal_actions(state))
@@ -28,12 +29,14 @@ class Node:
     def add_child(self, child, move):
         self.children[move] = child
 
+    # Get average value
     def get_q(self):
         if self.N == 0:
             return 1000000
         else:
             return self.E / self.N
 
+    # Get u(s, a)
     def get_uct(self, exploration_c):
         if self.N == 0:
             return 1000000
@@ -50,26 +53,23 @@ class Node:
 
 class MCTS:
     def __init__(self, game_manager=HexManager(7), policy_object=RandomPolicy()):
-
         self.game_manager: GameManager = game_manager
         self.root = Node(game_manager.generate_initial_state())
-        self.nodes = []
         self.node_count = 1
         self.rollout_count = 0
         self.policy_object = policy_object
 
+
+    # TODO: investigate root parallelization
     def parallel_search(self, max_rollouts):
         with mp.Pool(8) as pool:
             nodes = pool.apply_async(self.search, (100,))
             print(nodes.get(100))
 
-
+    # Perform rollouts and return children of root's visit counts
     def search(self, max_rollouts):
         for i in range(max_rollouts):
             self.single_pass()
-        #self.print_stats()
-
-        #return self.gen_distribution()
         return {key: v.N for key, v in self.root.children.items()}
 
     def single_pass(self):
@@ -77,6 +77,7 @@ class MCTS:
         result = self.rollout(node.state)
         self.backpropagate(node, result)
 
+    # Select node for expansion/rollout
     def select_node(self, node):
         while not node.terminal_node:           # Search for a (current) leaf node
             if node.max_expansion:              # If node is fully expanded, we go to its best child
@@ -85,7 +86,8 @@ class MCTS:
                 return self.expand(node)        # If node not fully expanded, expand it with a random unexplored action
         return node
 
-    def expand(self, node):  # Expands one node at a time
+    # Expand a node one child at a time
+    def expand(self, node):
         actions = self.game_manager.get_legal_actions(node.state)
         for action in actions:
             if action not in node.children:
@@ -93,11 +95,11 @@ class MCTS:
                 child = Node(copy.copy(state), node, action, terminal_node=self.game_manager.is_state_final(state))
                 self.node_count += 1
                 node.children[action] = child
-                #self.nodes.append(child)
                 if len(actions) == len(node.children):
                     node.max_expansion = True
                 return child
 
+    # Play a game to the end with actions selected based on the policy object
     def rollout(self, state):
         playout_state = copy.copy(state)
         move_count = 0
@@ -110,18 +112,20 @@ class MCTS:
         winner = self.game_manager.get_final_result(playout_state)  # Maybe return value?
         return winner
 
+    # Pass result back up and update visit counts
     def backpropagate(self, node: Node, result):
         while node is not None:
             node.N += 1
             node.E += result
             node = node.parent
 
+    # Get best action based on children
     def best_action(self, node):
         player_turn = node.state.player_turn
         best_children = []
         best_value = float("-inf")
         for child in node.children.values():
-            val = player_turn.value * child.get_q() + child.get_uct(2)
+            val = player_turn.value * child.get_q() + child.get_uct(exploration_c=2)
             if val > best_value:
                 best_value = val
                 best_children = [child]
@@ -130,25 +134,14 @@ class MCTS:
 
         return choice(best_children)
 
-    def gen_distribution(self):
-        dist = []
-        root_n = self.root.N
-        for child in self.root.children.values():
-            dist.append(child.N/root_n)
-        return dist
-
+    # Discards rest of tree and keeps one node as root
+    # TODO: investigate keeping some info
     def update_root(self, action):
         self.rollout_count = 0
         self.root = self.root.children[action]
         self.root.parent = None
         self.root.children = {}
         self.root.max_expansion = False
-        #self.reset_nodes()
-
-    def reset_nodes(self):
-        for node in self.nodes:
-            node.N = 0
-            #node.E = 0
 
     def print_stats(self):
         print(f"Used nodes: {self.node_count}\n"
