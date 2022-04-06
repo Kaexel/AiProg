@@ -31,20 +31,24 @@ class HexManager(GameManager):
         self.zero_board = np.zeros((board_size, board_size))
         self.ones_board = np.ones((board_size, board_size))
 
+
     def generate_initial_state(self):
-        return HexState(np.zeros((self.board_size, self.board_size)))
+        board = np.zeros((3, self.board_size, self.board_size))
+        board[0] = np.ones((self.board_size, self.board_size))
+        return HexState(board, Players.WHITE)
 
     def get_legal_actions(self, state: HexState):
-        actions = np.where(state.board == 0)
+        actions = np.nonzero(state.board[0])
         return list(zip(actions[0], actions[1]))
 
     # May be a better way to check final result? Not disjoint forest, too slow to deepcopy
     def is_state_final(self, state):
-        board = state.board
+
         player_turn = self.switch_player_turn(state.player_turn)  # We only need to check if game is finished for the player who last placed a tile. We switch the current player in the state
-        starts = ((0, x) for x in range(board.shape[1]) if board[0, x] == player_turn.value) if player_turn == Players.WHITE else ((y, 0) for y in range(board.shape[0]) if board[y, 0] == player_turn.value)
+        board = state.board[1] if player_turn == Players.WHITE else state.board[2]
+        starts = ((0, x) for x in range(board.shape[1]) if board[0, x] == 1) if player_turn == Players.WHITE else ((y, 0) for y in range(board.shape[0]) if board[y, 0] == 1)
         for start in starts:
-            if self.board_traversal_dfs(start, state.board, player_turn):
+            if self.board_traversal_dfs(start, board, player_turn):
                 return True
         return False
 
@@ -62,7 +66,7 @@ class HexManager(GameManager):
 
         for neighbor in neighbors:
             tile_coords = (current_tile[0] + neighbor[0], current_tile[1] + neighbor[1])
-            if self.in_bounds(tile_coords) and tile_coords not in visited and board[tile_coords[0], tile_coords[1]] == player_turn.value:  # Check if neighbor tile belongs to player
+            if self.in_bounds(tile_coords) and tile_coords not in visited and board[tile_coords[0], tile_coords[1]] == 1:  # Check if neighbor tile belongs to player
                 if self.board_traversal_dfs(tile_coords, board, player_turn, visited):
                     return True
         return False
@@ -70,11 +74,19 @@ class HexManager(GameManager):
     def play_action(self, action, state, inplace=False):
         # We use inplace to avoid instantiating a new hex state during rollouts
         if inplace:
-            state.board[action[0], action[1]] = state.player_turn.value
+            state.board[0, action[0], action[1]] = 0
+            if state.player_turn == Players.WHITE:
+                state.board[1, action[0], action[1]] = 1
+            else:
+                state.board[2, action[0], action[1]] = 1
             state.player_turn = self.switch_player_turn(state.player_turn)
         else:
             board = state.board.copy()
-            board[action[0], action[1]] = state.player_turn.value
+            board[0, action[0], action[1]] = 0
+            if state.player_turn == Players.WHITE:
+                board[1, action[0], action[1]] = 1
+            else:
+                board[2, action[0], action[1]] = 1
             return HexState(board, self.switch_player_turn(state.player_turn))
 
     def get_final_result(self, state):
@@ -83,6 +95,10 @@ class HexManager(GameManager):
         return Players.WHITE.value if state.player_turn == Players.BLACK else Players.BLACK.value
 
     def nn_state_representation(self, state):
+        m = np.array([self.ones_board, self.zero_board]) if state.player_turn == Players.WHITE else np.array([self.zero_board, self.ones_board])
+        q = np.concatenate((state.board, m), axis=0)
+        return q
+
         channels = np.zeros((5, state.board.shape[1], state.board.shape[0]), dtype=int)
         channels[0] = np.where(state.board == 0, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 0, 1, 0), axes=(1, 0))
         channels[1] = np.where(state.board == 1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 1, 1, 0), axes=(1, 0))
