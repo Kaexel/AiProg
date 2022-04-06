@@ -1,6 +1,7 @@
 import ast
 import cProfile
 import configparser
+import glob
 import time
 import torch
 
@@ -57,10 +58,9 @@ interval_save = num_actual // num_cached_nets if num_cached_nets > 0 else num_ac
 #sim_world = available_sim_worlds[sim_type](**params)
 #nim = OldGold(8)
 
-pr = cProfile.Profile()
-pr.enable()
+# Instantiate On-Policy Monte Carlo object with config params and run games
 model = nn.make_keras_model(filters=conv_layers, dense=dense_layers, rows=board_k, cols=board_k, activation_function=activation_function, optimizer=optimizer)
-opmc = OnPolicyMonteCarlo(mgr=HexManager(board_k), i_s=interval_save, actual_games=num_actual, search_games=num_rollout, model=model, max_rbuf=rbuf_len, sample_rbuf=rbuf_num_sample, gui=None)
+opmc = OnPolicyMonteCarlo(mgr=HexManager(board_k), i_s=interval_save, actual_games=num_actual, search_games=num_rollout, model=model, max_rbuf=rbuf_len, sample_rbuf=rbuf_num_sample, gui=gui.GameGUI())
 opmc.run_games()
-pr.disable()
-pr.print_stats()
+models = glob.glob(f"models\\model_{board_k}_*")
+gui.TournamentGUI(num_game_tournament, models)

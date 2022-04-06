@@ -1,6 +1,6 @@
 import random
 from abc import abstractmethod, ABC
-
+import ray
 import keras
 import tensorflow
 from torch import nn
@@ -41,13 +41,16 @@ class NeuralNetworkTorch(nn.Module):
 def make_keras_model(filters: tuple, dense: tuple, rows, cols, activation_function, optimizer):
     model = tf.keras.Sequential()
     # Setting up conv layers
-    model.add(tf.keras.layers.Conv2D(filters=filters[0], kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation=activation_function, input_shape=(5, rows, cols)))
+    model.add(tf.keras.layers.Conv2D(filters=filters[0], kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation=activation_function, input_shape=(6, rows, cols)))
     model.add(tf.keras.layers.BatchNormalization())
     if len(filters) > 1:
         for w in filters[1:]:
             model.add(tf.keras.layers.Conv2D(filters=w, kernel_size=(3, 3), strides=1, padding='same', data_format='channels_first', activation=activation_function))
             model.add(tf.keras.layers.BatchNormalization())
 
+    # TODO: maybe investigate pure conv further?
+    #model.add(tf.keras.layers.Conv2D(filters=1, kernel_size=(1, 1), padding="same", data_format='channels_first', activation='softmax'))
+    #model.add(tf.keras.layers.Flatten())
     # Setting up final dense layers
     model.add(tf.keras.layers.Flatten())
     for neurons in dense:

@@ -1,16 +1,18 @@
 import math
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.patches import RegularPolygon
 
-from sim_worlds.hex import Hex
 
-
+# Plots the board as lying hex
 def plot_board(state):
     fig, ax = plt.subplots(1)
     ax.set_aspect('equal')
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}
-    board = state.board
+    board = np.zeros_like(state.board[0])
+    board[np.nonzero(state.board[1])] = 1
+    board[np.nonzero(state.board[3])] = -1
     offset_x = 0
     offset_y = 0
     for row, tile_y in enumerate(board):
@@ -22,13 +24,16 @@ def plot_board(state):
 
     plt.autoscale(enable=True)
     plt.show()
-# offsetx += 0.5,
-# offset_y += math.sqrt(3) / 2
+
+
+# Plots the board as diamond hex
 def plot_board_45(state):
     fig, ax = plt.subplots(1)
     ax.set_aspect('equal')
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}
-    board = state.board
+    board = np.zeros_like(state.board[0])
+    board[np.nonzero(state.board[1])] = 1
+    board[np.nonzero(state.board[3])] = -1
     offset_x = 0
     offset_y = 0
     for row, tile_y in enumerate(board):
@@ -44,16 +49,22 @@ def plot_board_45(state):
     plt.autoscale(enable=True)
     plt.show()
 
+
+# Returns the plot
 def get_plot(state):
     fig, ax = plt.subplots(1)
     set_plot(state, ax)
     return fig, ax
 
+
+# Used to fill GUI with lying hex
 def set_plot(state, ax):
     ax.clear()
     ax.set_aspect('equal')
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}
-    board = state.board
+    board = np.zeros_like(state.board[0])
+    board[np.nonzero(state.board[1])] = 1
+    board[np.nonzero(state.board[2])] = -1
     offset_x = 0
     offset_y = 0
     for row, tile_y in enumerate(board):
@@ -66,11 +77,14 @@ def set_plot(state, ax):
     ax.set_xticklabels([])
     plt.autoscale(enable=True)
 
+# Used to fill GUI with diamond hex
 def set_plot_45(state, ax):
     ax.clear()
     ax.set_aspect('equal')
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}
-    board = state.board
+    board = np.zeros_like(state.board[0])
+    board[np.nonzero(state.board[1])] = 1
+    board[np.nonzero(state.board[2])] = -1
     offset_x = 0
     offset_y = 0
     for row, tile_y in enumerate(board):

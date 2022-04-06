@@ -5,7 +5,7 @@ import nn
 import plotting
 from game_managers.hex_manager import HexManager
 
-model = keras.models.load_model('models/model_5_200')
+model = keras.models.load_model('models\\5_dense_double_empties\\model_5_50')
 lite = nn.LiteModel.from_keras_model(model)
 manager = HexManager(5)
 state = manager.generate_initial_state()
@@ -36,7 +36,6 @@ def start_first():
 def start_second():
     plotting.plot_board(state)
     while 1:
-
         nn_move = lite.get_action(state=state, manager=manager)
         manager.play_action(nn_move, state, True)
         plotting.plot_board(state)
@@ -53,4 +52,5 @@ def start_second():
             break
 
 
-start_first()
+#start_first()
+start_second()

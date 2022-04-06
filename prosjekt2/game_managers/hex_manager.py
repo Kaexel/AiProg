@@ -79,6 +79,8 @@ class HexManager(GameManager):
                 state.board[1, action[0], action[1]] = 1
             else:
                 state.board[2, action[0], action[1]] = 1
+                #TODO: permanent rotated board may be more efficient
+                #state.board[2, action[1], (self.board_size - 1 - action[0])] = 1
             state.player_turn = self.switch_player_turn(state.player_turn)
         else:
             board = state.board.copy()
@@ -95,23 +97,6 @@ class HexManager(GameManager):
         return Players.WHITE.value if state.player_turn == Players.BLACK else Players.BLACK.value
 
     def nn_state_representation(self, state):
-        m = np.array([self.ones_board, self.zero_board]) if state.player_turn == Players.WHITE else np.array([self.zero_board, self.ones_board])
-        q = np.concatenate((state.board, m), axis=0)
-        return q
-
-        channels = np.zeros((5, state.board.shape[1], state.board.shape[0]), dtype=int)
-        channels[0] = np.where(state.board == 0, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 0, 1, 0), axes=(1, 0))
-        channels[1] = np.where(state.board == 1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == 1, 1, 0), axes=(1, 0))
-        channels[2] = np.where(state.board == -1, 1, 0) if state.player_turn == Players.WHITE else np.rot90(np.where(state.board == -1, 1, 0), axes=(1, 0))
-        #print(state.board[state.board == 0])
-        #channels[0] = state.board[state.board == 0] if state.player_turn == Players.WHITE else np.rot90(state.board[state.board == 0], axes=(1, 0))
-        #channels[1] = state.board[state.board == 1] if state.player_turn == Players.WHITE else np.rot90(state.board[state.board == 1], axes=(1, 0))
-        #channels[2] = state.board[state.board == -1] if state.player_turn == Players.WHITE else np.rot90(state.board[state.board == -1], axes=(1, 0))
-
-
-        channels[3] = self.ones_board if state.player_turn == Players.WHITE else self.zero_board
-        channels[4] = self.ones_board if state.player_turn == Players.BLACK else self.zero_board
-
         # TODO: features for bridge points
         """
         channel_black_bridge = np.array((2, 2))
@@ -119,7 +104,12 @@ class HexManager(GameManager):
         channel_save_bridge = np.array((2, 2))
         channel_form_bridge = np.array((2, 2))
         """
-        return channels
+        #return np.concatenate((np.rot90(state.board[], axes=(2,1)), np.array([self.ones_board, self.zero_board])), axis=0)
+        #return np.concatenate((np.array([state.board[0], state.board[1], np.rot90(state.board[2], axes=(1, 0))]), np.array([self.ones_board, self.zero_board])), axis=0) if state.player_turn == Players.WHITE else np.concatenate((np.array([state.board[0], state.board[1], np.rot90(state.board[2], axes=(1, 0))]), np.array([self.zero_board, self.ones_board])), axis=0)
+        #return np.concatenate((np.array([state.board[1], np.rot90(state.board[2], axes=(1, 0))]), np.array([self.ones_board, self.zero_board])), axis=0) if state.player_turn == Players.WHITE else np.concatenate((np.array([state.board[1], np.rot90(state.board[2], axes=(1, 0))]), np.array([self.zero_board, self.ones_board])), axis=0)
+        return np.concatenate((np.array([state.board[0], state.board[1], np.rot90(state.board[0], axes=(1, 0)), np.rot90(state.board[2], axes=(1, 0))]), np.array([self.ones_board, self.zero_board])), axis=0) if state.player_turn == Players.WHITE else np.concatenate((np.array([state.board[0], state.board[1], np.rot90(state.board[0], axes=(1, 0)), np.rot90(state.board[2], axes=(1, 0))]), np.array([self.zero_board, self.ones_board])), axis=0)
+
+
 
     def switch_player_turn(self, player_turn: Players):
         return Players.WHITE if player_turn == Players.BLACK else Players.BLACK
