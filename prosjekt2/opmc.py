@@ -74,7 +74,7 @@ class OnPolicyMonteCarlo:
             states, dists = zip(*random.sample(list(zip(self.rbuf['states'], self.rbuf['dists'])),
                                                min(len(self.rbuf['states']), self.num_sample_rbuf)))
             # Fitting model with 20 epochs and bs 8
-            self.model.fit(np.array(states), np.array(dists), epochs=20, batch_size=8)
+            self.model.fit(np.array(states), np.array(dists), epochs=20, batch_size=4)
 
             # Saving model according to save interval
             if (g_a + 1) % self.i_s == 0:

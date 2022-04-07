@@ -105,7 +105,7 @@ class LiteModel(PolicyObject):
         self.output_shape = output_det["shape"]
         self.input_dtype = input_det["dtype"]
         self.output_dtype = output_det["dtype"]
-        self.epsilon = 0.1
+        self.epsilon = 0.05
 
     def get_action(self, state, manager: GameManager):
         nn_state_representation = manager.nn_state_representation(state)

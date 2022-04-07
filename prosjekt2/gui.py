@@ -153,6 +153,7 @@ class TournamentGUI:
         self.update_plot(self.state)
         if self.manager.is_state_final(self.state):
             self.reset_game()
+            return
         self.cur_mod, self.waiting_mod = self.waiting_mod, self.cur_mod
 
     # Speeds through current series
@@ -162,7 +163,6 @@ class TournamentGUI:
     # Speeds through current game
     def play_through_game(self):
         result = self.finish_game()
-        self.state = self.manager.generate_initial_state()
 
     def toggle_board(self):
         self.board_figure.set_visible(not self.board_figure.get_visible())
@@ -213,7 +213,6 @@ class TournamentGUI:
             self.game_in_series = 0
             self.win_count_1 = 0
             self.win_count_2 = 0
-
 
         self.cur_mod, self.waiting_mod = self.model_l, self.model_r
         self.state = self.manager.generate_initial_state()

@@ -16,7 +16,7 @@ def plot_board(state):
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}
     board = np.zeros_like(state.board[0])
     board[np.nonzero(state.board[1])] = 1
-    board[np.nonzero(state.board[3])] = -1
+    board[np.nonzero(state.board[2])] = -1
     offset_x = 0
     offset_y = 0
     for row, tile_y in enumerate(board):
@@ -37,7 +37,7 @@ def plot_board_45(state):
     colors = {0: 'cyan', -1: 'red', 1: 'green', 3: 'pink'}
     board = np.zeros_like(state.board[0])
     board[np.nonzero(state.board[1])] = 1
-    board[np.nonzero(state.board[3])] = -1
+    board[np.nonzero(state.board[2])] = -1
     offset_x = 0
     offset_y = 0
     for row, tile_y in enumerate(board):

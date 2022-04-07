@@ -46,13 +46,13 @@ def topp(models: list, num_games: int, manager):
             win_2 = run_series(model_2[1], model_1[1], num_games, manager)
             tourneys[f"{model_1[0]}-{model_2[0]}"] = win_1
             tourneys[f"{model_2[0]}-{model_1[0]}"] = win_2
-        return tourneys
+    return tourneys
 
 
 if __name__ == "__main__":
     BOARD_SIZE = 5
     #models = glob.glob(f"models\\fullconv_5\\model_{BOARD_SIZE}_*")
-    models = glob.glob(f"models\\model_{BOARD_SIZE}_*")
+    models = glob.glob(f"models\\pretty_good_models\\model_{BOARD_SIZE}_*")
     #models.append("models\\model_5_10")
     #models = ["models\\model_7_50", "models\\model_7_49"]
     #models = ["models\\model_5_50", "models\\model_5_150"]
